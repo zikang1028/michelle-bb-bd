@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Happy Birthday, Michelle ✨</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -332,7 +332,7 @@
       max-width: 100vw;
     }
 
-    /* Full-Screen Scroll-Driven Birthday Candle Scene Styles (Edge-to-Edge) */
+    /* Full-Screen Scroll-Driven Birthday Candle Scene Styles (Edge-to-Edge Desktop / Cinema Viewport iPhone) */
     .scroll-scene-wrapper {
       position: relative;
       width: 100vw;
@@ -343,25 +343,139 @@
       height: 900vh;
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 767px) {
       .scroll-scene-wrapper {
         height: 750vh;
       }
     }
 
-    .scroll-scene-sticky {
-      position: sticky;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      contain: paint layout;
-      will-change: transform;
-      transform: translate3d(0, 0, 0);
-      backface-visibility: hidden;
-      touch-action: pan-y;
-      background: #090d16;
+    /* Desktop & Laptop: Full-Bleed Edge-to-Edge Experience */
+    @media (min-width: 768px) {
+      .scroll-scene-sticky {
+        position: sticky;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        contain: paint layout;
+        will-change: transform;
+        transform: translate3d(0, 0, 0);
+        backface-visibility: hidden;
+        touch-action: pan-y;
+        background: #090d16;
+      }
+
+      #scene-media-box {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .scene-top-controls {
+        position: absolute;
+        top: 2rem;
+        left: 0;
+        right: 0;
+        max-width: 48rem;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+        z-index: 35;
+      }
+
+      .scene-bottom-captions {
+        position: absolute;
+        bottom: 0;
+        inset-x: 0;
+        padding-top: 7rem;
+        padding-bottom: 2rem;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 65%, transparent 100%);
+      }
+    }
+
+    /* Specialized iPhone 16 / 16 Pro Max & Mobile Experience: Perfect Framing Without Face Cropping */
+    @media (max-width: 767px) {
+      .scroll-scene-sticky {
+        position: sticky;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background: radial-gradient(circle at 50% 45%, #181224 0%, #090c16 75%, #05060c 100%);
+        padding-top: max(0.65rem, env(safe-area-inset-top, 0.65rem));
+        padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
+        box-sizing: border-box;
+        overflow: hidden;
+        contain: paint layout;
+        will-change: transform;
+        transform: translate3d(0, 0, 0);
+        backface-visibility: hidden;
+        touch-action: pan-y;
+      }
+
+      .scene-top-controls {
+        position: relative;
+        width: 100%;
+        padding-top: max(3.5rem, calc(env(safe-area-inset-top, 0px) + 3.2rem));
+        z-index: 35;
+      }
+
+      #scene-media-box {
+        position: relative;
+        inset: auto;
+        width: calc(100vw - 1.25rem);
+        max-width: 440px;
+        aspect-ratio: 16 / 9;
+        height: auto;
+        margin: auto auto;
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.85), 0 0 30px rgba(244, 114, 182, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+      }
+
+      .scene-bottom-captions {
+        position: relative;
+        inset: auto;
+        padding: 0.5rem 1rem 0.25rem;
+        background: transparent;
+      }
+
+      header {
+        padding-top: max(0.5rem, env(safe-area-inset-top, 0.5rem)) !important;
+        padding-bottom: 0.5rem !important;
+      }
+
+      #piggy-game-modal, #piggy-event-modal, #lightbox-modal {
+        padding-top: max(1rem, env(safe-area-inset-top, 1rem)) !important;
+        padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem)) !important;
+      }
+    }
+
+    /* iOS Safe Area & Form Input Zoom Prevention */
+    @supports (-webkit-touch-callout: none) {
+      body {
+        min-height: -webkit-fill-available;
+      }
+    }
+
+    @media screen and (max-width: 767px) {
+      input, select, textarea {
+        font-size: 16px !important;
+      }
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
 
     /* ========================================================================= */
@@ -810,51 +924,52 @@
   <canvas id="cursor-fx-canvas"></canvas>
 
   <header
-    class="sticky top-0 z-40 px-4 py-3 bg-white/70 backdrop-blur-md border-b border-rose-100/80 transition-all duration-300">
-    <div class="max-w-6xl mx-auto flex items-center justify-between">
+    class="sticky top-0 z-40 px-3 sm:px-4 py-2 sm:py-3 bg-white/75 backdrop-blur-md border-b border-rose-100/80 transition-all duration-300">
+    <div class="max-w-6xl mx-auto flex items-center justify-between gap-2">
       <!-- Title & Lover's Name -->
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 shadow-inner">
-          <i data-lucide="sparkles" class="w-5 h-5"></i>
+      <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 shadow-inner shrink-0">
+          <i data-lucide="sparkles" class="w-4 h-4 sm:w-5 sm:h-5"></i>
         </div>
-        <div>
-          <div class="flex items-center gap-2">
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5 sm:gap-2">
             <span
-              class="text-xs uppercase font-bold tracking-widest text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200/60">Oct
+              class="text-[10px] sm:text-xs uppercase font-bold tracking-wider text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200/60 shrink-0">Oct
               19 Edition</span>
             <span id="birthday-status-badge"
-              class="hidden sm:inline text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">✨
+              class="hidden sm:inline text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 shrink-0">✨
               Special Day</span>
           </div>
           <h1
-            class="text-base sm:text-lg font-bold font-serif-title tracking-tight text-slate-900 flex items-center gap-1.5">
+            class="text-xs sm:text-lg font-bold font-serif-title tracking-tight text-slate-900 truncate">
             Happy Birthday, <span id="girlfriend-display-name" class="text-rose-600 font-bold">Michelle</span>! 🎂
           </h1>
         </div>
       </div>
 
       <!-- Quick Action Controls -->
-      <div class="flex items-center gap-2 sm:gap-3">
+      <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
         <!-- Main Game Quick Access Button -->
         <button onclick="openMainGameModal()" id="header-main-game-btn"
-          class="glass-pill px-3 py-1.5 rounded-full flex items-center gap-1.5 text-xs font-bold text-amber-900 bg-gradient-to-r from-amber-100 via-pink-100 to-rose-100 hover:from-amber-200 hover:to-rose-200 transition border border-amber-300 shadow-sm cursor-pointer"
+          class="glass-pill px-2.5 sm:px-3 py-1.5 rounded-full flex items-center gap-1 sm:gap-1.5 text-xs font-bold text-amber-900 bg-gradient-to-r from-amber-100 via-pink-100 to-rose-100 hover:from-amber-200 hover:to-rose-200 transition border border-amber-300 shadow-sm cursor-pointer shrink-0"
           title="Play Train Your Piggy Boyfriend!">
           <span class="text-sm animate-pulse">🐷</span>
-          <span>Main Game</span>
+          <span class="hidden sm:inline">Main Game</span>
+          <span class="sm:hidden">Game</span>
         </button>
 
         <!-- Audio Synthesizer Controller -->
         <button id="music-toggle-btn"
-          class="glass-pill px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-medium text-rose-700 hover:bg-rose-50 transition border border-rose-200"
+          class="glass-pill px-2.5 sm:px-3 py-1.5 rounded-full flex items-center gap-1 sm:gap-2 text-xs font-medium text-rose-700 hover:bg-rose-50 transition border border-rose-200 shrink-0"
           title="Toggle Romantic Melody">
-          <i data-lucide="music" class="w-4 h-4 text-rose-500"></i>
+          <i data-lucide="music" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500"></i>
           <span id="music-status-text" class="hidden sm:inline">Play Melody</span>
           <span id="music-wave" class="hidden text-rose-400 animate-pulse text-[10px]">♫ ♫</span>
         </button>
 
         <!-- Birthday Mode Forcer Toggle -->
-<button id="toggle-bday-mode-btn"
-          class="text-xs bg-rose-500 hover:bg-rose-600 text-white font-semibold px-3 py-1.5 rounded-full shadow-sm hover:shadow transition flex items-center gap-1.5">
+        <button id="toggle-bday-mode-btn"
+          class="text-xs bg-rose-500 hover:bg-rose-600 text-white font-semibold px-2.5 sm:px-3 py-1.5 rounded-full shadow-sm hover:shadow transition flex items-center gap-1.5 shrink-0">
           <i data-lucide="cake" class="w-3.5 h-3.5"></i>
           <span class="hidden md:inline">Celebrate Now</span>
           <span class="md:hidden">Party</span>
@@ -865,29 +980,29 @@
 
   <main class="relative z-10 max-w-5xl mx-auto px-4 pt-6 pb-12">
     <!-- Chapter Navigation Pills -->
-    <nav class="flex items-center justify-center gap-1 sm:gap-2 mb-8 overflow-x-auto py-2 px-1">
+    <nav class="flex items-center justify-start md:justify-center gap-1.5 sm:gap-2 mb-8 overflow-x-auto no-scrollbar scroll-smooth snap-x touch-pan-x py-2 px-1">
       <button onclick="switchChapter('roadmap')" id="tab-roadmap"
-        class="chapter-tab active px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 flex items-center gap-2 bg-rose-600 text-white shadow-md shadow-rose-200">
+        class="chapter-tab active shrink-0 snap-center px-3.5 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 flex items-center gap-1.5 sm:gap-2 bg-rose-600 text-white shadow-md shadow-rose-200">
         <i data-lucide="map-pin" class="w-4 h-4"></i>
         <span>1. Our Journey</span>
       </button>
       <button onclick="switchChapter('quest')" id="tab-quest"
-        class="chapter-tab px-4 py-2 rounded-full text-xs sm:text-sm font-semibold text-slate-600 hover:text-rose-600 bg-white/70 border border-rose-100 hover:bg-rose-50/70 transition-all duration-300 flex items-center gap-2">
+        class="chapter-tab shrink-0 snap-center px-3.5 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-semibold text-slate-600 hover:text-rose-600 bg-white/70 border border-rose-100 hover:bg-rose-50/70 transition-all duration-300 flex items-center gap-1.5 sm:gap-2">
         <i data-lucide="gamepad-2" class="w-4 h-4"></i>
         <span>2. The Quest</span>
       </button>
       <button onclick="switchChapter('museum')" id="tab-museum"
-        class="chapter-tab px-4 py-2 rounded-full text-xs sm:text-sm font-semibold text-slate-600 hover:text-rose-600 bg-white/70 border border-rose-100 hover:bg-rose-50/70 transition-all duration-300 flex items-center gap-2">
+        class="chapter-tab shrink-0 snap-center px-3.5 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-semibold text-slate-600 hover:text-rose-600 bg-white/70 border border-rose-100 hover:bg-rose-50/70 transition-all duration-300 flex items-center gap-1.5 sm:gap-2">
         <i data-lucide="frame" class="w-4 h-4"></i>
         <span>3. Museum of Us</span>
       </button>
       <button onclick="switchChapter('bucketlist')" id="tab-bucketlist"
-        class="chapter-tab px-4 py-2 rounded-full text-xs sm:text-sm font-semibold text-slate-600 hover:text-rose-600 bg-white/70 border border-rose-100 hover:bg-rose-50/70 transition-all duration-300 flex items-center gap-2">
+        class="chapter-tab shrink-0 snap-center px-3.5 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-semibold text-slate-600 hover:text-rose-600 bg-white/70 border border-rose-100 hover:bg-rose-50/70 transition-all duration-300 flex items-center gap-1.5 sm:gap-2">
         <i data-lucide="compass" class="w-4 h-4"></i>
         <span>4. Our Bucket List</span>
       </button>
       <button onclick="switchChapter('letter')" id="tab-letter"
-        class="chapter-tab px-4 py-2 rounded-full text-xs sm:text-sm font-semibold text-slate-600 hover:text-rose-600 bg-white/70 border border-rose-100 hover:bg-rose-50/70 transition-all duration-300 flex items-center gap-2">
+        class="chapter-tab shrink-0 snap-center px-3.5 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-semibold text-slate-600 hover:text-rose-600 bg-white/70 border border-rose-100 hover:bg-rose-50/70 transition-all duration-300 flex items-center gap-1.5 sm:gap-2">
         <i data-lucide="gift" class="w-4 h-4"></i>
         <span>5. Mystery Envelope</span>
       </button>
@@ -1084,6 +1199,16 @@
       <!-- SCROLL-DRIVEN INTERACTIVE CHILDHOOD BIRTHDAY SCENE (FULL SCREEN VIEWPORT) -->
       <div id="birthday-scroll-scene" class="scroll-scene-wrapper">
         <div class="scroll-scene-sticky">
+          <!-- Top Floating Controls (Phase Badge & Scroll Percentage) -->
+          <div class="scene-top-controls flex items-center justify-between px-4 pt-2 pb-1 z-30 pointer-events-auto w-full max-w-2xl mx-auto">
+            <span id="scene-phase-badge" class="text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-500 text-white shadow-sm transition-all duration-300">
+              🕯️ Phase 1: Make a Birthday Wish...
+            </span>
+            <div class="flex items-center gap-2">
+              <span id="scene-scroll-pct" class="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-black/60 text-rose-300 border border-white/20">0%</span>
+            </div>
+          </div>
+
           <!-- Full-Bleed Edge-to-Edge Image Sequence Viewport (No Cards, No Borders) -->
           <div id="scene-media-box" class="absolute inset-0 w-full h-full overflow-hidden select-none touch-pan-y">
             <!-- Full-Bleed 300-Frame Apple-Style Image Sequence Scrubber Canvas -->
@@ -1222,17 +1347,19 @@
           </div>
 
           <!-- Bottom Floating Cinematic Captions -->
-          <div
-            class="absolute bottom-0 inset-x-0 z-30 pt-28 pb-8 px-4 sm:px-8 bg-gradient-to-t from-black/85 via-black/40 to-transparent text-white pointer-events-none">
-            <div class="max-w-4xl mx-auto w-full text-center space-y-1.5 pointer-events-auto">
+          <div class="scene-bottom-captions z-30 px-4 pb-3 text-white text-center pointer-events-none w-full max-w-2xl mx-auto">
+            <div class="space-y-1.5 pointer-events-auto">
               <span id="scene-sub-caption"
-                class="text-[11px] sm:text-xs uppercase tracking-widest text-rose-300 font-bold block drop-shadow">
+                class="text-[10px] sm:text-xs uppercase tracking-widest text-rose-300 font-bold block drop-shadow">
                 Childhood Birthday Magic • October 19
               </span>
               <h3 id="scene-main-caption"
-                class="text-lg sm:text-2xl md:text-3xl font-serif-title font-bold text-white drop-shadow-md">
+                class="text-base sm:text-2xl md:text-3xl font-serif-title font-bold text-white drop-shadow-md leading-tight">
                 "Two little kids making the biggest birthday wish..."
               </h3>
+              <p class="text-[10px] sm:text-xs text-rose-200/80 animate-pulse pt-0.5 md:hidden">
+                ↓ Scroll to blow candles together ↓
+              </p>
             </div>
           </div>
         </div>
@@ -1779,140 +1906,8 @@
       </div>
     </section>
 
-
     <!-- ========================================================================= -->
-    
-      <!-- ===================================================================== -->
-      <!-- FEATURE 6: MICHELLE & PIGGY'S CUSTOM WHATSAPP MEME & STICKER MAKER    -->
-      <!-- ===================================================================== -->
-      <div id="piggy-meme-studio-section" class="glass-card max-w-4xl mx-auto rounded-3xl p-6 sm:p-8 space-y-6 border-2 border-amber-300 bg-gradient-to-b from-white/95 via-amber-50/40 to-rose-50/70 shadow-xl my-8">
-        
-        <!-- Header -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-200 pb-4">
-          <div class="space-y-1">
-            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold uppercase tracking-wider">
-              <span>🎨 Meme & Sticker Studio</span>
-              <span>•</span>
-              <span>专属表情包工坊</span>
-            </div>
-            <h3 class="text-2xl sm:text-3xl font-serif-title font-bold text-slate-800">
-              Michelle & Piggy's WhatsApp Sticker Maker 💬✨
-            </h3>
-            <p class="text-xs sm:text-sm text-slate-600 max-w-xl">
-              Create funny & cute cartoon stickers of Michelle and Si Gina Piggy Hong! Customize the speech bubble, pick a pose, and download your transparent PNG sticker!
-            </p>
-          </div>
-          <button type="button" onclick="downloadCustomSticker()" 
-            class="px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white font-bold text-xs shadow-md shadow-amber-200 transition-all transform hover:scale-105 inline-flex items-center gap-1.5 cursor-pointer">
-            <span>📥 Download Transparent Sticker (PNG)</span>
-          </button>
-        </div>
-
-        <!-- Studio Layout: Left Live Preview, Right Controls -->
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-          
-          <!-- LEFT: Sticker Preview Canvas Frame -->
-          <div class="md:col-span-5 flex flex-col items-center justify-center">
-            <div id="sticker-preview-box" class="w-64 h-64 sm:w-72 sm:h-72 rounded-3xl bg-white border-4 border-amber-300 p-4 shadow-xl flex flex-col items-center justify-between relative overflow-hidden select-none">
-              <!-- Speech Bubble -->
-              <div id="sticker-speech-bubble" class="w-full bg-amber-100 border-2 border-amber-400 rounded-2xl p-2.5 text-center text-xs font-extrabold text-amber-900 shadow-sm relative transition-all">
-                "Yes, My Queen Michelle! (收到老婆指令)"
-                <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-6 border-r-6 border-t-6 border-transparent border-t-amber-400"></div>
-              </div>
-
-              <!-- Main Cartoon Emoji Character Group -->
-              <div id="sticker-character-art" class="flex-1 flex items-center justify-center text-7xl sm:text-8xl transition-all transform hover:scale-110">
-                🧎‍♂️🐷
-              </div>
-
-              <!-- Bottom Sticker Tag -->
-              <div class="text-[10px] font-bold text-amber-600 font-mono tracking-wider">
-                MICHELLE & HONG • STICKER
-              </div>
-            </div>
-            <p class="text-[11px] text-slate-400 mt-2 text-center">
-              Formatted as 512×512 transparent PNG, ready for WhatsApp & Telegram stickers!
-            </p>
-          </div>
-
-          <!-- RIGHT: Customization Controls -->
-          <div class="md:col-span-7 space-y-4">
-            
-            <!-- 1. Choose Cute Scene Pose -->
-            <div class="space-y-2">
-              <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                1. Choose Cartoon Scene:
-              </label>
-              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                <button type="button" onclick="setStickerPose('kneel')" data-pose="kneel" 
-                  class="sticker-pose-btn p-2 rounded-xl border-2 border-amber-300 bg-amber-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ring-2 ring-amber-500">
-                  <span>🧎‍♂️🐷</span>
-                  <span class="truncate">Yes Boss!</span>
-                </button>
-                <button type="button" onclick="setStickerPose('slipper')" data-pose="slipper" 
-                  class="sticker-pose-btn p-2 rounded-xl border-2 border-slate-200 bg-white hover:bg-amber-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
-                  <span>🩴🏃‍♂️</span>
-                  <span class="truncate">Slipper Chase</span>
-                </button>
-                <button type="button" onclick="setStickerPose('cake')" data-pose="cake" 
-                  class="sticker-pose-btn p-2 rounded-xl border-2 border-slate-200 bg-white hover:bg-amber-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
-                  <span>🍰🐷</span>
-                  <span class="truncate">Feed Piggy</span>
-                </button>
-                <button type="button" onclick="setStickerPose('cuddle')" data-pose="cuddle" 
-                  class="sticker-pose-btn p-2 rounded-xl border-2 border-slate-200 bg-white hover:bg-amber-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
-                  <span>🛋️💕</span>
-                  <span class="truncate">Cuddle Cozy</span>
-                </button>
-                <button type="button" onclick="setStickerPose('shopping')" data-pose="shopping" 
-                  class="sticker-pose-btn p-2 rounded-xl border-2 border-slate-200 bg-white hover:bg-amber-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
-                  <span>🛍️👑</span>
-                  <span class="truncate">ATM Piggy</span>
-                </button>
-                <button type="button" onclick="setStickerPose('love')" data-pose="love" 
-                  class="sticker-pose-btn p-2 rounded-xl border-2 border-slate-200 bg-white hover:bg-amber-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
-                  <span>💖🐷</span>
-                  <span class="truncate">Love 3000</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- 2. Speech Bubble Dialogue -->
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                  2. Customize Speech Bubble:
-                </label>
-                <span class="text-[10px] text-slate-400">Type anything you want!</span>
-              </div>
-              <input type="text" id="sticker-text-input" value="Yes, My Queen Michelle! (收到老婆指令)" oninput="updateStickerText()" 
-                class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-amber-200 focus:outline-none focus:border-amber-400 bg-white shadow-sm font-semibold text-slate-800">
-              
-              <!-- Quick Preset Phrases -->
-              <div class="flex items-center gap-1.5 flex-wrap pt-1">
-                <button type="button" onclick="quickSetStickerText('Piggy Hong buy boba now! 🧋')" class="text-[10px] px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-800 font-semibold transition cursor-pointer">🧋 Buy Boba</button>
-                <button type="button" onclick="quickSetStickerText('Si Gina Hong, come here right now! 🩴')" class="text-[10px] px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 font-semibold transition cursor-pointer">🩴 Slipper Warning</button>
-                <button type="button" onclick="quickSetStickerText('Happy Birthday My Queen Michelle! 🎂👑')" class="text-[10px] px-2.5 py-1 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-800 font-semibold transition cursor-pointer">👑 Happy Birthday</button>
-                <button type="button" onclick="quickSetStickerText('Chan Tse Hong loves Michelle 3000 💕')" class="text-[10px] px-2.5 py-1 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold transition cursor-pointer">💕 Love 3000</button>
-              </div>
-            </div>
-
-            <!-- Download Button -->
-            <div class="pt-2">
-              <button type="button" onclick="downloadCustomSticker()" 
-                class="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-rose-500 to-pink-500 hover:from-amber-600 hover:to-pink-600 text-white font-extrabold text-sm shadow-lg shadow-amber-200 transition-all transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer">
-                <span>Save Transparent Sticker (.png)</span>
-                <span>➔</span>
-              </button>
-            </div>
-
-          </div>
-        </div>
-
-      </div>
-
-
-      <!-- <!-- CHAPTER 3: DIGITAL MUSEUM OF US                                           -->
+    <!-- CHAPTER 3: DIGITAL MUSEUM OF US                                           -->
     <!-- ========================================================================= -->
     <section id="chapter-museum" class="chapter-panel hidden space-y-10 animate-fade">
       <div class="text-center max-w-2xl mx-auto space-y-2">
@@ -2442,7 +2437,132 @@
         </div>
       </div>
 
-      <!-- Museum Footer Next Step -->
+      <!-- ===================================================================== -->
+      <!-- FEATURE 6: MICHELLE & PIGGY'S CUSTOM WHATSAPP MEME & STICKER MAKER    -->
+      <!-- ===================================================================== -->
+      <div id="piggy-meme-studio-section" class="glass-card max-w-4xl mx-auto rounded-3xl p-6 sm:p-8 space-y-6 border-2 border-amber-300 bg-gradient-to-b from-white/95 via-amber-50/40 to-rose-50/70 shadow-xl my-8">
+        
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-amber-200 pb-4">
+          <div class="space-y-1">
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold uppercase tracking-wider">
+              <span>🎨 Meme & Sticker Studio</span>
+              <span>•</span>
+              <span>专属表情包工坊</span>
+            </div>
+            <h3 class="text-2xl sm:text-3xl font-serif-title font-bold text-slate-800">
+              Michelle & Piggy's WhatsApp Sticker Maker 💬✨
+            </h3>
+            <p class="text-xs sm:text-sm text-slate-600 max-w-xl">
+              Create funny & cute cartoon stickers of Michelle and Si Gina Piggy Hong! Customize the speech bubble, pick a pose, and download your transparent PNG sticker!
+            </p>
+          </div>
+          <button type="button" onclick="downloadCustomSticker()" 
+            class="px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 text-white font-bold text-xs shadow-md shadow-amber-200 transition-all transform hover:scale-105 inline-flex items-center gap-1.5 cursor-pointer">
+            <span>📥 Download Transparent Sticker (PNG)</span>
+          </button>
+        </div>
+
+        <!-- Studio Layout: Left Live Preview, Right Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+          
+          <!-- LEFT: Sticker Preview Canvas Frame -->
+          <div class="md:col-span-5 flex flex-col items-center justify-center">
+            <div id="sticker-preview-box" class="w-64 h-64 sm:w-72 sm:h-72 rounded-3xl bg-white border-4 border-amber-300 p-4 shadow-xl flex flex-col items-center justify-between relative overflow-hidden select-none">
+              <!-- Speech Bubble -->
+              <div id="sticker-speech-bubble" class="w-full bg-amber-100 border-2 border-amber-400 rounded-2xl p-2.5 text-center text-xs font-extrabold text-amber-900 shadow-sm relative transition-all">
+                "Yes, My Queen Michelle! (收到老婆指令)"
+                <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-6 border-r-6 border-t-6 border-transparent border-t-amber-400"></div>
+              </div>
+
+              <!-- Main Cartoon Emoji Character Group -->
+              <div id="sticker-character-art" class="flex-1 flex items-center justify-center text-7xl sm:text-8xl transition-all transform hover:scale-110">
+                🧎‍♂️🐷
+              </div>
+
+              <!-- Bottom Sticker Tag -->
+              <div class="text-[10px] font-bold text-amber-600 font-mono tracking-wider">
+                MICHELLE & HONG • STICKER
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-2 text-center">
+              Formatted as 512×512 transparent PNG, ready for WhatsApp & Telegram stickers!
+            </p>
+          </div>
+
+          <!-- RIGHT: Customization Controls -->
+          <div class="md:col-span-7 space-y-4">
+            
+            <!-- 1. Choose Cute Scene Pose -->
+            <div class="space-y-2">
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                1. Choose Cartoon Scene:
+              </label>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <button type="button" onclick="setStickerPose('kneel')" data-pose="kneel" 
+                  class="sticker-pose-btn p-2 rounded-xl border-2 border-amber-300 bg-amber-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer ring-2 ring-amber-500">
+                  <span>🧎‍♂️🐷</span>
+                  <span class="truncate">Yes Boss!</span>
+                </button>
+                <button type="button" onclick="setStickerPose('slipper')" data-pose="slipper" 
+                  class="sticker-pose-btn p-2 rounded-xl border-2 border-slate-200 bg-white hover:bg-amber-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+                  <span>🩴🏃‍♂️</span>
+                  <span class="truncate">Slipper Chase</span>
+                </button>
+                <button type="button" onclick="setStickerPose('cake')" data-pose="cake" 
+                  class="sticker-pose-btn p-2 rounded-xl border-2 border-slate-200 bg-white hover:bg-amber-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+                  <span>🍰🐷</span>
+                  <span class="truncate">Feed Piggy</span>
+                </button>
+                <button type="button" onclick="setStickerPose('cuddle')" data-pose="cuddle" 
+                  class="sticker-pose-btn p-2 rounded-xl border-2 border-slate-200 bg-white hover:bg-amber-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+                  <span>🛋️💕</span>
+                  <span class="truncate">Cuddle Cozy</span>
+                </button>
+                <button type="button" onclick="setStickerPose('shopping')" data-pose="shopping" 
+                  class="sticker-pose-btn p-2 rounded-xl border-2 border-slate-200 bg-white hover:bg-amber-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+                  <span>🛍️👑</span>
+                  <span class="truncate">ATM Piggy</span>
+                </button>
+                <button type="button" onclick="setStickerPose('love')" data-pose="love" 
+                  class="sticker-pose-btn p-2 rounded-xl border-2 border-slate-200 bg-white hover:bg-amber-50 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+                  <span>💖🐷</span>
+                  <span class="truncate">Love 3000</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 2. Speech Bubble Dialogue -->
+            <div class="space-y-2">
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                2. Customize Speech Bubble:
+              </label>
+              <input type="text" id="sticker-text-input" value="Yes, My Queen Michelle! (收到老婆指令)" oninput="updateStickerText()" 
+                class="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border-2 border-amber-200 focus:outline-none focus:border-amber-400 bg-white shadow-sm font-semibold text-slate-800">
+              
+              <!-- Quick Preset Phrases -->
+              <div class="flex items-center gap-1.5 flex-wrap pt-1">
+                <button type="button" onclick="quickSetStickerText('Piggy Hong buy boba now! 🧋')" class="text-[10px] px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-800 font-semibold transition cursor-pointer">🧋 Buy Boba</button>
+                <button type="button" onclick="quickSetStickerText('Si Gina Hong, come here right now! 🩴')" class="text-[10px] px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 font-semibold transition cursor-pointer">🩴 Slipper Warning</button>
+                <button type="button" onclick="quickSetStickerText('Happy Birthday My Queen Michelle! 🎂👑')" class="text-[10px] px-2.5 py-1 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-800 font-semibold transition cursor-pointer">👑 Happy Birthday</button>
+                <button type="button" onclick="quickSetStickerText('Chan Tse Hong loves Michelle 3000 💕')" class="text-[10px] px-2.5 py-1 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold transition cursor-pointer">💕 Love 3000</button>
+              </div>
+            </div>
+
+            <!-- Download Button -->
+            <div class="pt-2">
+              <button type="button" onclick="downloadCustomSticker()" 
+                class="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 via-rose-500 to-pink-500 hover:from-amber-600 hover:to-pink-600 text-white font-extrabold text-sm shadow-lg shadow-amber-200 transition-all transform hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer">
+                <span>Save Transparent Sticker (.png)</span>
+                <span>➔</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
       <!-- Museum Footer Next Step -->
       <div class="text-center pt-2">
         <button onclick="switchChapter('bucketlist')"
@@ -3966,14 +4086,17 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
         panel.classList.add('hidden');
       });
       document.querySelectorAll('.chapter-tab').forEach(tab => {
-        tab.className = "chapter-tab px-4 py-2 rounded-full text-xs sm:text-sm font-semibold text-slate-600 hover:text-rose-600 bg-white/70 border border-rose-100 hover:bg-rose-50/70 transition-all duration-300 flex items-center gap-2";
+        tab.className = "chapter-tab shrink-0 snap-center px-3.5 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-semibold text-slate-600 hover:text-rose-600 bg-white/70 border border-rose-100 hover:bg-rose-50/70 transition-all duration-300 flex items-center gap-1.5 sm:gap-2";
       });
 
       const targetPanel = document.getElementById(`chapter-${chapterId}`);
       const targetTab = document.getElementById(`tab-${chapterId}`);
       if (targetPanel && targetTab) {
         targetPanel.classList.remove('hidden');
-        targetTab.className = "chapter-tab active px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 flex items-center gap-2 bg-rose-600 text-white shadow-md shadow-rose-200";
+        targetTab.className = "chapter-tab active shrink-0 snap-center px-3.5 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-300 flex items-center gap-1.5 sm:gap-2 bg-rose-600 text-white shadow-md shadow-rose-200";
+        try {
+          targetTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        } catch (e) {}
       }
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -4475,9 +4598,14 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
         if (seqCanvasEl) seqCtx = seqCanvasEl.getContext('2d', { alpha: false });
       }
       if (!seqCanvasEl || !seqCtx || !img) return;
-      const w = seqCanvasEl.width;
-      const h = seqCanvasEl.height;
-      if (!w || !h) return;
+      let w = seqCanvasEl.width;
+      let h = seqCanvasEl.height;
+      if (!w || !h) {
+        if (typeof resizeCanvases === 'function') resizeCanvases();
+        w = seqCanvasEl.width;
+        h = seqCanvasEl.height;
+        if (!w || !h) return;
+      }
       const iw = img.naturalWidth || 1280;
       const ih = img.naturalHeight || 720;
       const c = getCropParams(w, h, iw, ih);
@@ -5073,7 +5201,7 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
         const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
         const targetW = Math.round(rect.width * dpr);
         const targetH = Math.round(rect.height * dpr);
-        if (seqCanvasEl.width !== targetW || seqCanvasEl.height !== targetH) {
+        if (targetW > 0 && targetH > 0 && (seqCanvasEl.width !== targetW || seqCanvasEl.height !== targetH)) {
           seqCanvasEl.width = targetW;
           seqCanvasEl.height = targetH;
           fxCanvasEl.width = targetW;
@@ -5091,6 +5219,12 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
       }
       resizeCanvases();
       window.addEventListener('resize', resizeCanvases);
+      if (window.ResizeObserver && seqCanvasEl.parentElement) {
+        try {
+          const ro = new ResizeObserver(() => resizeCanvases());
+          ro.observe(seqCanvasEl.parentElement);
+        } catch (e) {}
+      }
 
       // Start zero-lag two-stage priority preloading
       startTwoStagePreload();
