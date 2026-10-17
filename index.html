@@ -340,7 +340,13 @@
       right: 50%;
       margin-left: -50vw;
       margin-right: -50vw;
-      height: 450vh;
+      height: 900vh;
+    }
+
+    @media (max-width: 640px) {
+      .scroll-scene-wrapper {
+        height: 750vh;
+      }
     }
 
     .scroll-scene-sticky {
@@ -350,6 +356,7 @@
       width: 100vw;
       height: 100vh;
       overflow: hidden;
+      contain: paint layout;
       will-change: transform;
       transform: translate3d(0, 0, 0);
       backface-visibility: hidden;
@@ -3971,13 +3978,10 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
-      // If returning to chapter 1 (roadmap), refresh cached scroll metrics
-      if (chapterId === 'roadmap' && typeof updateSceneMetrics === 'function') {
-        updateSceneMetrics();
-      }
-
-      // If opening chapter 5 (mystery envelope) and scratchcards need initialization
+      // If returning to chapter 1 (roadmap), refresh cached scroll metrics and resume render loop
       if (chapterId === 'roadmap') {
+        if (typeof updateSceneMetrics === 'function') updateSceneMetrics();
+        if (typeof window.resumeCandleScrollAnimation === 'function') window.resumeCandleScrollAnimation();
         if (typeof updateLoveStopwatch === 'function') updateLoveStopwatch();
       }
 
@@ -4407,16 +4411,17 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
       if (!sceneWrapperEl) sceneWrapperEl = document.getElementById('birthday-scroll-scene');
       if (!sceneWrapperEl) return;
       const rect = sceneWrapperEl.getBoundingClientRect();
-      cachedSceneTop = rect.top + window.scrollY;
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+      cachedSceneTop = rect.top + scrollY;
       cachedSceneHeight = sceneWrapperEl.offsetHeight || rect.height;
       cachedStickyH = window.innerHeight; // Full-screen 100vh
       cachedViewportH = window.innerHeight;
     }
 
-    // 7.5-second Cinematic Auto-Play State
+    // 18.0-second Slow Cinematic Auto-Play State
     let autoPlayActive = false;
     let autoPlayStartTime = 0;
-    const AUTO_PLAY_DURATION = 7500;
+    const AUTO_PLAY_DURATION = 18000;
     let autoPlayStartProgress = 0;
     let autoPlayEndProgress = 1.0;
 
@@ -4480,22 +4485,47 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
       seqCtx.drawImage(img, c.cx, c.cy, c.cw, c.ch, 0, 0, w, h);
     }
 
-    // Nearest-neighbor fallback: always finds closest loaded frame so the screen never flashes blank
+    // Fast O(1) nearest-neighbor fallback: always finds closest loaded frame so the screen never flashes blank
+    let lastValidLoadedImg = null;
+    let lastValidFrameIndex = -1;
+
     function getNearestLoadedFrame(targetIdx) {
-      if (frameImages[targetIdx] && frameImages[targetIdx].complete && frameImages[targetIdx].naturalWidth > 0) {
-        return frameImages[targetIdx];
+      const img = frameImages[targetIdx];
+      if (img && img.complete && img.naturalWidth > 0) {
+        lastValidLoadedImg = img;
+        lastValidFrameIndex = targetIdx;
+        return img;
       }
+      if (lastValidLoadedImg) {
+        return lastValidLoadedImg;
+      }
+      // Startup fallback before any frame is decoded: search outward once and cache
       for (let offset = 1; offset < TOTAL_FRAMES; offset++) {
         const lower = targetIdx - offset;
         if (lower >= 1 && frameImages[lower] && frameImages[lower].complete && frameImages[lower].naturalWidth > 0) {
-          return frameImages[lower];
+          lastValidLoadedImg = frameImages[lower];
+          lastValidFrameIndex = lower;
+          return lastValidLoadedImg;
         }
         const upper = targetIdx + offset;
         if (upper <= TOTAL_FRAMES && frameImages[upper] && frameImages[upper].complete && frameImages[upper].naturalWidth > 0) {
-          return frameImages[upper];
+          lastValidLoadedImg = frameImages[upper];
+          lastValidFrameIndex = upper;
+          return lastValidLoadedImg;
         }
       }
       return null;
+    }
+
+    // Proactively decode frames ±8 around current playback head
+    function preloadNearbyFrames(currentIdx) {
+      const minIdx = Math.max(1, currentIdx - 8);
+      const maxIdx = Math.min(TOTAL_FRAMES, currentIdx + 8);
+      for (let i = minIdx; i <= maxIdx; i++) {
+        if (!frameImages[i]) {
+          preloadImage(i);
+        }
+      }
     }
 
     function renderSequenceFrame(frameIndex) {
@@ -4505,6 +4535,7 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
         drawFrameToCanvas(img);
         lastDrawnFrameIndex = frameIndex;
       }
+      preloadNearbyFrames(frameIndex);
     }
 
     // Preloader Pill UI updater
@@ -4558,13 +4589,27 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
       });
     }
 
+    // Scroll-cooperative yielding: throttle background batch decoding while user is actively scrolling
+    let isUserScrolling = false;
+    let userScrollTimer = null;
+    function noteUserScroll() {
+      isUserScrolling = true;
+      if (userScrollTimer) clearTimeout(userScrollTimer);
+      userScrollTimer = setTimeout(() => {
+        isUserScrolling = false;
+      }, 150);
+    }
+
     async function loadInBatches(indices, batchSize, onProgress) {
       for (let i = 0; i < indices.length; i += batchSize) {
+        if (isUserScrolling) {
+          await new Promise(r => setTimeout(r, 24));
+        }
         const chunk = indices.slice(i, i + batchSize);
         await Promise.all(chunk.map(idx => preloadImage(idx)));
         if (onProgress) onProgress();
         // Micro-yield to keep scroll and UI thread buttery smooth without thread contention
-        await new Promise(r => setTimeout(r, 4));
+        await new Promise(r => setTimeout(r, 12));
       }
     }
 
@@ -4595,7 +4640,7 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
       }
       if (!keyframeIndices.includes(TOTAL_FRAMES)) keyframeIndices.push(TOTAL_FRAMES);
 
-      await loadInBatches(keyframeIndices, 12, () => {
+      await loadInBatches(keyframeIndices, 10, () => {
         updateLoaderProgress(loadedCount, TOTAL_FRAMES);
       });
 
@@ -4604,7 +4649,7 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
       for (let i = 1; i <= TOTAL_FRAMES; i++) {
         if (!frameImages[i]) remainingIndices.push(i);
       }
-      loadInBatches(remainingIndices, 12, () => {
+      loadInBatches(remainingIndices, 10, () => {
         updateLoaderProgress(loadedCount, TOTAL_FRAMES);
       });
     }
@@ -4613,12 +4658,13 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
     function calculateSceneScrollProgress() {
       if (!cachedSceneHeight) updateSceneMetrics();
       const totalScrollable = Math.max(1, cachedSceneHeight - cachedViewportH);
-      const scrolled = window.scrollY - cachedSceneTop;
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+      const scrolled = scrollY - cachedSceneTop;
       const progress = scrolled / totalScrollable;
       return Math.max(0, Math.min(1, progress));
     }
 
-    // Interactive Auto-Play / Manual Blow button (5 seconds duration or rewind)
+    // Interactive Auto-Play / Manual Blow button (18 seconds cinematic movie or rewind)
     function manualBlowCandles() {
       const btnText = document.getElementById('manual-blow-text');
       if (autoPlayActive) {
@@ -4719,7 +4765,7 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
       }
     }
 
-    // High-Performance 2D Particle Effects Layer on #candle-scroll-canvas (Zero shadowBlur overhead)
+    // High-Performance 2D Particle Effects Layer on #candle-scroll-canvas (Zero shadowBlur overhead & batched styling)
     function renderCandleFxCanvas(now, frameIndex, progress) {
       if (!fxCanvasEl) {
         fxCanvasEl = document.getElementById('candle-scroll-canvas');
@@ -4745,7 +4791,8 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
         const scaleFactor = Math.max(0.7, Math.min(1.4, w / 1280));
 
         // Warm golden glow around cake candles (mapped to cropped full-screen canvas)
-        CAKE_CANDLES.forEach((c, idx) => {
+        for (let idx = 0; idx < CAKE_CANDLES.length; idx++) {
+          const c = CAKE_CANDLES[idx];
           const imgX = c.nx * 1280;
           const imgY = c.ny * 720;
           const cx = ((imgX - crop.cx) / crop.cw) * w;
@@ -4769,7 +4816,7 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
           ctx.quadraticCurveTo(cx + 6 * flameScale, cy - 10 * flameScale, cx, cy);
           ctx.fillStyle = '#f59e0b';
           ctx.fill();
-        });
+        }
 
         // Breath wind streaks as kids take a deep breath to blow (frames 25 - 55)
         if (frameIndex >= 25 && breathWindParticles.length < 8 && Math.random() < 0.4) {
@@ -4796,25 +4843,26 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
         }
       }
 
-      // Render breath wind streaks
-      for (let i = breathWindParticles.length - 1; i >= 0; i--) {
-        const bw = breathWindParticles[i];
-        bw.x += bw.vx;
-        bw.y += bw.vy;
-        bw.alpha -= 0.04;
-        if (bw.alpha <= 0) {
-          breathWindParticles.splice(i, 1);
-          continue;
-        }
-        ctx.save();
-        ctx.strokeStyle = `rgba(255, 255, 255, ${bw.alpha})`;
+      // Render breath wind streaks (Batched, no per-particle save/restore)
+      if (breathWindParticles.length > 0) {
+        ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 2.0;
         ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(bw.x, bw.y);
-        ctx.lineTo(bw.x - bw.vx * 2.5, bw.y - bw.vy * 2.5);
-        ctx.stroke();
-        ctx.restore();
+        for (let i = breathWindParticles.length - 1; i >= 0; i--) {
+          const bw = breathWindParticles[i];
+          bw.x += bw.vx;
+          bw.y += bw.vy;
+          bw.alpha -= 0.04;
+          if (bw.alpha <= 0) {
+            breathWindParticles.splice(i, 1);
+            continue;
+          }
+          ctx.globalAlpha = Math.max(0, bw.alpha);
+          ctx.beginPath();
+          ctx.moveTo(bw.x, bw.y);
+          ctx.lineTo(bw.x - bw.vx * 2.5, bw.y - bw.vy * 2.5);
+          ctx.stroke();
+        }
       }
 
       // =====================================================================
@@ -4884,7 +4932,7 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
         }
       }
 
-      // Render Floating Hearts & Emojis
+      // Render Floating Hearts & Emojis (Batched styling, no per-particle save/restore)
       for (let i = floatingHearts.length - 1; i >= 0; i--) {
         const fh = floatingHearts[i];
         fh.x += fh.vx + Math.sin(now * 0.003 + fh.sway) * 0.7;
@@ -4896,14 +4944,12 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
           continue;
         }
 
-        ctx.save();
         ctx.globalAlpha = Math.max(0, fh.alpha);
         ctx.font = `${Math.round(fh.size)}px sans-serif`;
         ctx.fillText(fh.icon, fh.x, fh.y);
-        ctx.restore();
       }
 
-      // Render Golden Sparkles (Lightweight, zero shadowBlur)
+      // Render Golden Sparkles (Batched styling, no per-particle save/restore)
       for (let i = romanticSparkles.length - 1; i >= 0; i--) {
         const rs = romanticSparkles[i];
         rs.x += rs.vx;
@@ -4915,17 +4961,99 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
           continue;
         }
 
-        ctx.save();
         ctx.globalAlpha = Math.max(0, rs.alpha);
         ctx.fillStyle = rs.color;
         ctx.font = `${Math.round(rs.size)}px serif`;
         ctx.fillText('✨', rs.x, rs.y);
-        ctx.restore();
       }
+      ctx.globalAlpha = 1.0;
+    }
+
+    // Viewport-Managed Rendering Loop State
+    let candleAnimationInitialized = false;
+    let isSceneVisible = true;
+    let isRenderLoopRunning = false;
+    let candleRafId = null;
+    let sceneIntersectionObserver = null;
+
+    function startCandleRenderLoop() {
+      if (isRenderLoopRunning) return;
+      isRenderLoopRunning = true;
+      candleRafId = requestAnimationFrame(candleRenderLoop);
+    }
+
+    function stopCandleRenderLoop() {
+      isRenderLoopRunning = false;
+      if (candleRafId) {
+        cancelAnimationFrame(candleRafId);
+        candleRafId = null;
+      }
+    }
+
+    // Main Hardware-Accelerated Lerp Render Loop
+    function candleRenderLoop(now) {
+      if (!isSceneVisible) {
+        isRenderLoopRunning = false;
+        return;
+      }
+
+      // Skip work if Chapter 1 (roadmap) is currently hidden
+      const roadmapPanel = document.getElementById('chapter-roadmap');
+      if (roadmapPanel && roadmapPanel.classList.contains('hidden')) {
+        isRenderLoopRunning = false;
+        return;
+      }
+
+      // 1. Auto-Play / Movie animation (18-second cinematic duration)
+      if (autoPlayActive) {
+        const elapsed = now - autoPlayStartTime;
+        const t = Math.min(1, elapsed / AUTO_PLAY_DURATION);
+        targetProgress = autoPlayStartProgress + (autoPlayEndProgress - autoPlayStartProgress) * t;
+        smoothProgress = targetProgress; // Direct lock for steady film-like movie playback
+        if (t >= 1) {
+          autoPlayActive = false;
+          const btnText = document.getElementById('manual-blow-text');
+          if (btnText) btnText.textContent = "Rewind to Start ⏪";
+        }
+      } else {
+        // 2. Silky-Smooth Inertial Lerp (Adaptive damping + reduced motion preference)
+        const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (prefersReducedMotion) {
+          smoothProgress = targetProgress;
+        } else {
+          const diff = targetProgress - smoothProgress;
+          const absDiff = Math.abs(diff);
+          let lerpFactor = 0.15;
+          if (absDiff > 0.08) lerpFactor = 0.25;
+          if (absDiff > 0.20) lerpFactor = 0.40;
+          if (absDiff < 0.0003) {
+            smoothProgress = targetProgress;
+          } else {
+            smoothProgress += diff * lerpFactor;
+          }
+        }
+      }
+
+      // 3. Optimized frame lookup logic (1 to 300)
+      const frameIndex = Math.max(1, Math.min(300, Math.floor(smoothProgress * 299) + 1));
+
+      // 4. Dirty-Flagged Frame Drawing
+      renderSequenceFrame(frameIndex);
+
+      // 5. Throttled DOM Captions & GPU Progress Bar Updates
+      updateStoryProgression(frameIndex, smoothProgress);
+
+      // 6. Synchronized 2D Particle FX Overlay
+      renderCandleFxCanvas(now, frameIndex, smoothProgress);
+
+      candleRafId = requestAnimationFrame(candleRenderLoop);
     }
 
     // Main Initialization Function for Image Sequence Scrubber
     function initCandleScrollAnimation() {
+      if (candleAnimationInitialized) return;
+      candleAnimationInitialized = true;
+
       sceneWrapperEl = document.getElementById('birthday-scroll-scene');
       seqCanvasEl = document.getElementById('sequence-render-canvas');
       fxCanvasEl = document.getElementById('candle-scroll-canvas');
@@ -4937,15 +5065,19 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
 
       if (!sceneWrapperEl || !seqCanvasEl || !fxCanvasEl) return;
 
+      // DPR-capped canvas sizing (max 1.5x) to eliminate memory bloat & excessive fill rate
       function resizeCanvases() {
         const parent = seqCanvasEl.parentElement;
         if (!parent) return;
         const rect = parent.getBoundingClientRect();
-        if (seqCanvasEl.width !== rect.width || seqCanvasEl.height !== rect.height) {
-          seqCanvasEl.width = rect.width;
-          seqCanvasEl.height = rect.height;
-          fxCanvasEl.width = rect.width;
-          fxCanvasEl.height = rect.height;
+        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        const targetW = Math.round(rect.width * dpr);
+        const targetH = Math.round(rect.height * dpr);
+        if (seqCanvasEl.width !== targetW || seqCanvasEl.height !== targetH) {
+          seqCanvasEl.width = targetW;
+          seqCanvasEl.height = targetH;
+          fxCanvasEl.width = targetW;
+          fxCanvasEl.height = targetH;
           cachedCrop = null;
           seqCtx = seqCanvasEl.getContext('2d', { alpha: false });
           fxCtx = fxCanvasEl.getContext('2d');
@@ -4968,67 +5100,50 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
       targetProgress = calculateSceneScrollProgress();
       smoothProgress = targetProgress;
 
-      // Ultra-lightweight passive scroll listener (0 DOM reflows on scroll)
+      // Ultra-lightweight passive scroll listener with RAF coalescing & scroll yielding
+      let scrollPending = false;
       window.addEventListener('scroll', () => {
+        noteUserScroll();
         if (autoPlayActive) {
           autoPlayActive = false;
           const btnText = document.getElementById('manual-blow-text');
           if (btnText) btnText.textContent = "Blow Candles 💨";
         }
-        targetProgress = calculateSceneScrollProgress();
+        if (!scrollPending) {
+          scrollPending = true;
+          requestAnimationFrame(() => {
+            targetProgress = calculateSceneScrollProgress();
+            scrollPending = false;
+            if (isSceneVisible && !isRenderLoopRunning) {
+              startCandleRenderLoop();
+            }
+          });
+        }
       }, { passive: true });
 
-      // Hardware-Accelerated Lerp Render Loop
-      function renderLoop(now) {
-        // Skip work if Chapter 1 (roadmap) is currently hidden
-        const roadmapPanel = document.getElementById('chapter-roadmap');
-        if (roadmapPanel && roadmapPanel.classList.contains('hidden')) {
-          requestAnimationFrame(renderLoop);
-          return;
-        }
-
-        // 1. Auto-Play / Movie animation
-        if (autoPlayActive) {
-          const elapsed = now - autoPlayStartTime;
-          const t = Math.min(1, elapsed / AUTO_PLAY_DURATION);
-          targetProgress = autoPlayStartProgress + (autoPlayEndProgress - autoPlayStartProgress) * t;
-          smoothProgress = targetProgress; // Direct lock for steady 60fps movie playback
-          if (t >= 1) {
-            autoPlayActive = false;
-            const btnText = document.getElementById('manual-blow-text');
-            if (btnText) btnText.textContent = "Rewind to Start ⏪";
-          }
-        } else {
-          // 2. Silky-Smooth Inertial Lerp (Eliminates abrupt jumps, gives smooth gliding feel)
-          const diff = targetProgress - smoothProgress;
-          const absDiff = Math.abs(diff);
-          let lerpFactor = 0.12;
-          if (absDiff > 0.12) {
-            lerpFactor = 0.22;
-          }
-          if (absDiff < 0.0002) {
-            smoothProgress = targetProgress;
+      // Viewport Culling Observer: pauses RAF rendering when birthday scene is off-screen
+      if ('IntersectionObserver' in window && sceneWrapperEl) {
+        sceneIntersectionObserver = new IntersectionObserver((entries) => {
+          const entry = entries[0];
+          isSceneVisible = entry.isIntersecting;
+          if (isSceneVisible) {
+            startCandleRenderLoop();
           } else {
-            smoothProgress += diff * lerpFactor;
+            stopCandleRenderLoop();
           }
-        }
-
-        // 3. Optimized frame lookup logic
-        const frameIndex = Math.max(1, Math.min(300, Math.floor(smoothProgress * 299) + 1));
-
-        // 4. Dirty-Flagged Frame Drawing
-        renderSequenceFrame(frameIndex);
-
-        // 5. Throttled DOM Captions & GPU Progress Bar Updates
-        updateStoryProgression(frameIndex, smoothProgress);
-
-        // 6. Synchronized 2D Particle FX Overlay
-        renderCandleFxCanvas(now, frameIndex, smoothProgress);
-
-        requestAnimationFrame(renderLoop);
+        }, { rootMargin: '250px 0px' });
+        sceneIntersectionObserver.observe(sceneWrapperEl);
+      } else {
+        startCandleRenderLoop();
       }
 
-      requestAnimationFrame(renderLoop);
+      // Expose resume hook for tab switches
+      window.resumeCandleScrollAnimation = () => {
+        updateSceneMetrics();
+        if (isSceneVisible && !isRenderLoopRunning) {
+          startCandleRenderLoop();
+        }
+      };
     }
 
     /* ========================================================================= */
@@ -5188,25 +5303,33 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
       }
       draw(ctx) {
         if (this.alpha <= 0) return;
-        ctx.save();
-        ctx.globalAlpha = this.alpha;
+        const rad = Math.max(0.5, this.size);
+        // Soft outer glow without CPU-bound shadowBlur
+        ctx.globalAlpha = this.alpha * 0.35;
         ctx.fillStyle = this.color;
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = this.color;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, Math.max(0.5, this.size), 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, rad * 1.8, 0, Math.PI * 2);
         ctx.fill();
-        ctx.restore();
+        // Bright core
+        ctx.globalAlpha = this.alpha;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, rad, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
+
+    let sparkleAnimId = null;
 
     function addCursorSparkles(x, y) {
       for (let i = 0; i < 3; i++) {
         sparkleParticles.push(new SparkleParticle(x, y));
       }
+      if (!sparkleAnimId) {
+        sparkleAnimId = requestAnimationFrame(animateSparkles);
+      }
     }
 
-    window.addEventListener('mousemove', (e) => addCursorSparkles(e.clientX, e.clientY));
+    window.addEventListener('mousemove', (e) => addCursorSparkles(e.clientX, e.clientY), { passive: true });
     window.addEventListener('touchmove', (e) => {
       if (e.touches.length > 0) {
         addCursorSparkles(e.touches[0].clientX, e.touches[0].clientY);
@@ -5214,6 +5337,11 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
     }, { passive: true });
 
     function animateSparkles() {
+      if (sparkleParticles.length === 0) {
+        cursorCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
+        sparkleAnimId = null;
+        return; // Pause RAF when idle, saving 60fps full-screen clearRect overhead!
+      }
       cursorCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
       for (let i = sparkleParticles.length - 1; i >= 0; i--) {
         const p = sparkleParticles[i];
@@ -5223,7 +5351,8 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
           sparkleParticles.splice(i, 1);
         }
       }
-      requestAnimationFrame(animateSparkles);
+      ctx.globalAlpha = 1.0;
+      sparkleAnimId = requestAnimationFrame(animateSparkles);
     }
 
 
