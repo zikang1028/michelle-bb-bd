@@ -1,0 +1,1696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard • Michelle's Birthday Web App</title>
+  <meta name="robots" content="noindex, nofollow">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Shared Configuration & DB Bridge -->
+  <script src="./supabase-config.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Caveat:wght@600;700&display=swap');
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .font-serif-title {
+      font-family: 'Playfair Display', Georgia, serif;
+    }
+    .font-handwriting {
+      font-family: 'Caveat', cursive;
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 min-h-screen selection:bg-rose-500 selection:text-white">
+
+  <!-- ========================================================================= -->
+  <!-- ADMIN SECURITY PASSCODE LOCK SCREEN                                        -->
+  <!-- ========================================================================= -->
+  <div id="lock-screen" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-sm w-full p-8 text-center space-y-6 shadow-2xl">
+      <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-rose-500 to-pink-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-rose-500/20">
+        <i data-lucide="shield-check" class="w-8 h-8"></i>
+      </div>
+      <div>
+        <h2 class="text-xl font-bold text-white font-serif-title">Admin Control Portal</h2>
+        <p class="text-xs text-slate-400 mt-1">Enter PIN to manage Michelle's birthday site</p>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <input id="admin-pin-input" type="password" maxlength="8" placeholder="••••" class="w-full text-center text-2xl tracking-[0.5em] font-mono py-3 px-4 rounded-xl bg-slate-800/80 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 transition" autofocus />
+          <p id="pin-error-msg" class="text-xs text-rose-400 mt-2 hidden font-medium">Incorrect PIN code. Try again.</p>
+        </div>
+        <button onclick="handleUnlockSubmit()" class="w-full py-3 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-sm shadow-lg shadow-rose-500/20 transition transform active:scale-98 flex items-center justify-center gap-2">
+          <i data-lucide="key-round" class="w-4 h-4"></i>
+          <span>Unlock Dashboard</span>
+        </button>
+      </div>
+
+      <div class="pt-2 border-t border-slate-800 text-[11px] text-slate-500">
+        Default passcode: <span class="font-mono text-slate-400">1019</span> (Michelle's Birthday)
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MAIN ADMIN DASHBOARD UI                                                   -->
+  <!-- ========================================================================= -->
+  <div id="admin-app" class="hidden min-h-screen flex flex-col">
+
+    <!-- Top Sticky Header Bar -->
+    <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 sm:px-8 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-500 to-pink-600 text-white flex items-center justify-center shadow">
+          <i data-lucide="sparkles" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base font-bold text-white font-serif-title">Michelle's Birthday Admin</h1>
+            <span id="sync-status-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Ready</span>
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400">Direct CRUD & Real-Time Supabase Sync</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- View Public Site Button -->
+        <a href="./index.html" target="_blank" class="text-xs px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5 shadow-sm">
+          <span>View Site</span>
+          <i data-lucide="external-link" class="w-3.5 h-3.5 text-rose-400"></i>
+        </a>
+
+        <!-- Global Save to Cloud Button -->
+        <button onclick="saveAllChangesToCloud()" id="global-save-btn" class="text-xs px-5 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold transition flex items-center gap-2 shadow-lg shadow-rose-500/20 transform active:scale-95">
+          <i data-lucide="cloud-upload" class="w-4 h-4"></i>
+          <span id="global-save-text">Save & Sync to Supabase</span>
+        </button>
+
+        <!-- Lock / Exit Admin Button -->
+        <button onclick="lockAdmin()" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition" title="Lock Admin Portal">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-slate-900 border-b border-slate-800 px-4 sm:px-8">
+      <nav class="flex items-center gap-1 sm:gap-2 overflow-x-auto py-2">
+        <button onclick="switchAdminTab('general')" id="tab-btn-general" class="admin-tab-btn active px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30 flex items-center gap-2 whitespace-nowrap transition">
+          <i data-lucide="heart" class="w-3.5 h-3.5"></i>
+          <span>1. General & Names</span>
+        </button>
+        <button onclick="switchAdminTab('journey')" id="tab-btn-journey" class="admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 border border-transparent flex items-center gap-2 whitespace-nowrap transition">
+          <i data-lucide="camera" class="w-3.5 h-3.5"></i>
+          <span>2. Chapter 1: Milestones & Photos 📸</span>
+        </button>
+        <button onclick="switchAdminTab('quiz')" id="tab-btn-quiz" class="admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 border border-transparent flex items-center gap-2 whitespace-nowrap transition">
+          <i data-lucide="gamepad-2" class="w-3.5 h-3.5"></i>
+          <span>3. Main Game: Piggy Face & Quest 🐷</span>
+        </button>
+        <button onclick="switchAdminTab('museum')" id="tab-btn-museum" class="admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 border border-transparent flex items-center gap-2 whitespace-nowrap transition">
+          <i data-lucide="image" class="w-3.5 h-3.5"></i>
+          <span>4. Museum of Us</span>
+        </button>
+        <button onclick="switchAdminTab('bucketlist')" id="tab-btn-bucketlist" class="admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 border border-transparent flex items-center gap-2 whitespace-nowrap transition">
+          <i data-lucide="compass" class="w-3.5 h-3.5"></i>
+          <span>5. Lifetime Bucket List 🗺️</span>
+        </button>
+        <button onclick="switchAdminTab('letter')" id="tab-btn-letter" class="admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 border border-transparent flex items-center gap-2 whitespace-nowrap transition">
+          <i data-lucide="feather" class="w-3.5 h-3.5"></i>
+          <span>6. Letter & Vouchers</span>
+        </button>
+        <button onclick="switchAdminTab('notes')" id="tab-btn-notes" class="admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 border border-transparent flex items-center gap-2 whitespace-nowrap transition">
+          <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+          <span>7. Wish Wall</span>
+        </button>
+        <button onclick="switchAdminTab('supabase')" id="tab-btn-supabase" class="admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 border border-transparent flex items-center gap-2 whitespace-nowrap transition">
+          <i data-lucide="database" class="w-3.5 h-3.5"></i>
+          <span>8. Supabase & Database</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-8 space-y-8">
+
+      <!-- ===================================================================== -->
+      <!-- TAB 1: GENERAL & NAMES                                                -->
+      <!-- ===================================================================== -->
+      <section id="pane-general" class="admin-pane space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-xl font-bold text-white font-serif-title">General & Couple Details</h2>
+            <p class="text-xs text-slate-400">Names, birthday date, header titles, and background music.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Girlfriend Name -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <label class="block text-xs font-bold uppercase tracking-wider text-rose-400">Girlfriend's Display Name</label>
+            <input id="input-gf-name" type="text" class="w-full text-sm px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-rose-500" placeholder="e.g. Michelle" />
+            <p class="text-[11px] text-slate-500">Appears in header, countdown, letter greeting, and throughout the story.</p>
+          </div>
+
+          <!-- Boyfriend / Author Signature -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <label class="block text-xs font-bold uppercase tracking-wider text-rose-400">Your Signature / Name</label>
+            <input id="input-author-name" type="text" class="w-full text-sm px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-rose-500" placeholder="e.g. Forever Yours, Chan Tse Hong (Lengzai糠) ❤️" />
+            <p class="text-[11px] text-slate-500">Appears at the bottom of the love letter and memory logs.</p>
+          </div>
+
+          <!-- Birthday Date -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <label class="block text-xs font-bold uppercase tracking-wider text-amber-400">Birthday Date & Display</label>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <span class="text-[10px] text-slate-400 block mb-1">Target Date</span>
+                <input id="input-bday-date" type="date" class="w-full text-xs px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500" />
+              </div>
+              <div>
+                <span class="text-[10px] text-slate-400 block mb-1">Display Label</span>
+                <input id="input-bday-display" type="text" class="w-full text-xs px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="e.g. October 19" />
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-500">Used by the live countdown clock and birthday trigger.</p>
+          </div>
+
+          <!-- Header Badges -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <label class="block text-xs font-bold uppercase tracking-wider text-amber-400">Header Badges</label>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <span class="text-[10px] text-slate-400 block mb-1">Top Edition Badge</span>
+                <input id="input-header-badge" type="text" class="w-full text-xs px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="Oct 19 Edition" />
+              </div>
+              <div>
+                <span class="text-[10px] text-slate-400 block mb-1">Special Status Badge</span>
+                <input id="input-status-badge" type="text" class="w-full text-xs px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500" placeholder="✨ Special Day" />
+              </div>
+            </div>
+            <p class="text-[11px] text-slate-500">Labels shown in the top navigation bar next to her name.</p>
+          </div>
+
+          <!-- Background Music Audio URL -->
+          <div class="md:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <label class="block text-xs font-bold uppercase tracking-wider text-purple-400">Custom Romantic Background Music (Optional)</label>
+              <span class="text-[10px] text-slate-400">MP3 / Audio URL</span>
+            </div>
+            <input id="input-music-url" type="url" class="w-full text-xs px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="https://example.com/your-favorite-song.mp3 (leave empty for built-in cute melody)" />
+            <p class="text-[11px] text-slate-500">If provided, pressing "Play Melody" will stream your custom song URL instead of the default synthesizer.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 2: JOURNEY & MILESTONES (CHAPTER 1)                                -->
+      <!-- ===================================================================== -->
+      <section id="pane-journey" class="admin-pane hidden space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-xl font-bold text-white font-serif-title">Chapter 1: Milestones & Polaroid Flip Cards</h2>
+            <p class="text-xs text-slate-400">Upload or change photos for the 4 Polaroid cards, edit story descriptions, and customize quotes.</p>
+          </div>
+          <button onclick="saveAllAdminData()" class="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold flex items-center gap-1.5 shadow transition">
+            <i data-lucide="save" class="w-4 h-4"></i>
+            <span>Save & Sync</span>
+          </button>
+        </div>
+
+        <!-- 4 Milestone Cards (Primary Focus) -->
+        <div class="space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 bg-rose-500/10 border border-rose-500/20 p-3.5 rounded-2xl">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                <i data-lucide="camera" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h3 class="text-xs font-bold text-white uppercase tracking-wider">Chapter 1 Milestone Cards (Photos & Stories)</h3>
+                <p class="text-[11px] text-slate-300">Upload custom photos directly into each card below or paste an image URL.</p>
+              </div>
+            </div>
+            <span class="text-[11px] font-semibold text-rose-300 bg-rose-500/20 px-2.5 py-1 rounded-full border border-rose-500/30">4 Core Cards</span>
+          </div>
+
+          <div id="milestones-editor-list" class="space-y-6">
+            <!-- Dynamic Milestones injected by JS -->
+          </div>
+        </div>
+
+        <!-- 4 Scroll Scene Phases (Secondary / Advanced) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-rose-400 uppercase tracking-wider flex items-center gap-2">
+              <i data-lucide="video" class="w-4 h-4"></i>
+              <span>Scroll-Scrubber Story Captions (4 Phases)</span>
+            </h3>
+            <span class="text-xs text-slate-400">Background Scrubber Text</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Phase 1 -->
+            <div class="bg-slate-800/60 p-4 rounded-xl space-y-2 border border-slate-700/60">
+              <span class="text-xs font-bold text-amber-400 block">Phase 1 (Frames 001 - 055)</span>
+              <input id="input-phase1-badge" type="text" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white" placeholder="Phase 1 Badge" />
+              <input id="input-phase1-sub" type="text" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white" placeholder="Phase 1 Subtitle" />
+              <textarea id="input-phase1-main" rows="2" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white" placeholder="Phase 1 Main Quote"></textarea>
+            </div>
+
+            <!-- Phase 2 -->
+            <div class="bg-slate-800/60 p-4 rounded-xl space-y-2 border border-slate-700/60">
+              <span class="text-xs font-bold text-rose-400 block">Phase 2 (Frames 056 - 115)</span>
+              <input id="input-phase2-badge" type="text" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white" placeholder="Phase 2 Badge" />
+              <input id="input-phase2-sub" type="text" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white" placeholder="Phase 2 Subtitle" />
+              <textarea id="input-phase2-main" rows="2" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white" placeholder="Phase 2 Main Quote"></textarea>
+            </div>
+
+            <!-- Phase 3 -->
+            <div class="bg-slate-800/60 p-4 rounded-xl space-y-2 border border-slate-700/60">
+              <span class="text-xs font-bold text-pink-400 block">Phase 3 (Frames 116 - 185)</span>
+              <input id="input-phase3-badge" type="text" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white" placeholder="Phase 3 Badge" />
+              <input id="input-phase3-sub" type="text" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white" placeholder="Phase 3 Subtitle" />
+              <textarea id="input-phase3-main" rows="2" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white" placeholder="Phase 3 Main Quote"></textarea>
+            </div>
+
+            <!-- Phase 4 -->
+            <div class="bg-slate-800/60 p-4 rounded-xl space-y-2 border border-slate-700/60">
+              <span class="text-xs font-bold text-purple-400 block">Phase 4 (Frames 186 - 300)</span>
+              <input id="input-phase4-badge" type="text" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white" placeholder="Phase 4 Badge" />
+              <input id="input-phase4-sub" type="text" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white" placeholder="Phase 4 Subtitle" />
+              <textarea id="input-phase4-main" rows="2" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white" placeholder="Phase 4 Main Quote"></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 3: QUIZ & ARCADE (CHAPTER 2)                                      -->
+      <!-- ===================================================================== -->
+      <!-- ===================================================================== -->
+      <!-- TAB 3: PIGGY MAIN GAME & QUIZ QUEST (CHAPTER 2)                       -->
+      <!-- ===================================================================== -->
+      <section id="pane-quiz" class="admin-pane hidden space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-xl font-bold text-white font-serif-title">Chapter 2: "Train Your Si Gina Piggy Boyfriend! 🐷" & Quest</h2>
+            <p class="text-xs text-slate-400">Upload Chan Tse Hong's custom cutout face, toggle snout, and manage quiz trivia questions.</p>
+          </div>
+          <button onclick="saveAllAdminData()" class="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold flex items-center gap-1.5 shadow transition">
+            <i data-lucide="save" class="w-4 h-4"></i>
+            <span>Save & Sync</span>
+          </button>
+        </div>
+
+        <!-- Piggy Boyfriend Face Uploader & Game Settings -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 space-y-5">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-pink-500/20 text-pink-400 flex items-center justify-center text-xl">
+                🐷
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-white uppercase tracking-wider">Main Game: "Train Your Si Gina Piggy Boyfriend!"</h3>
+                <p class="text-xs text-slate-400">Put Chan Tse Hong's funny face onto the interactive pig body for Michelle's 5-day pet simulation!</p>
+              </div>
+            </div>
+            <button type="button" onclick="resetAdminPiggyGame()" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border border-slate-700 text-xs font-medium flex items-center gap-1.5 transition">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+              <span>Reset Game Progress (Testing)</span>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+            <!-- Left: Live Rig Preview -->
+            <div class="md:col-span-5 flex flex-col items-center justify-center bg-slate-950/60 p-5 rounded-2xl border border-slate-800 text-center">
+              <span class="text-[11px] font-bold text-pink-400 uppercase tracking-wider mb-3">Live Rig Preview</span>
+              <div class="relative w-36 h-36 flex items-center justify-center">
+                <!-- Floppy Pig Ears -->
+                <div class="absolute -top-3 left-2 w-8 h-10 bg-pink-300 rounded-full border-2 border-pink-400 origin-bottom transform -rotate-25 shadow-sm"></div>
+                <div class="absolute -top-3 right-2 w-8 h-10 bg-pink-300 rounded-full border-2 border-pink-400 origin-bottom transform rotate-25 shadow-sm"></div>
+
+                <!-- Circular Face Head -->
+                <div id="admin-piggy-face-box" class="w-28 h-28 rounded-full overflow-hidden border-4 border-pink-300 shadow-xl bg-pink-100 relative flex items-center justify-center">
+                  <img id="admin-piggy-face-img" src="" alt="Chan Tse Hong Face" class="w-full h-full object-cover hidden select-none pointer-events-none" />
+                  <div id="admin-piggy-face-placeholder" class="text-center p-2">
+                    <span class="text-3xl block mb-1">👦</span>
+                    <span class="text-[10px] text-pink-700 font-bold leading-tight block">Upload Cutout Face</span>
+                  </div>
+                  <!-- Snout Overlay -->
+                  <div id="admin-piggy-snout-overlay" class="absolute bottom-2.5 w-10 h-6 bg-pink-400 rounded-full border border-pink-500 flex items-center justify-center gap-1.5 shadow">
+                    <div class="w-1.5 h-2 bg-pink-800 rounded-full"></div>
+                    <div class="w-1.5 h-2 bg-pink-800 rounded-full"></div>
+                  </div>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-3 font-medium">Avatar scaled with Tse Hong's cutout face</p>
+            </div>
+
+            <!-- Right: Upload Controls -->
+            <div class="md:col-span-7 space-y-3.5">
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Upload Boyfriend Cutout Face (Image File)</label>
+                <div class="flex items-center gap-2">
+                  <label class="cursor-pointer px-4 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-pink-500/20 transition">
+                    <i data-lucide="upload" class="w-4 h-4"></i>
+                    <span>Choose Face Photo</span>
+                    <input type="file" accept="image/*" class="hidden" onchange="handlePiggyFaceUpload(event)" />
+                  </label>
+                  <button type="button" id="admin-remove-face-btn" onclick="removePiggyFace()" class="hidden px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-400 border border-slate-700 text-xs font-medium">
+                    Remove
+                  </button>
+                </div>
+                <p class="text-[10px] text-slate-500 mt-1">Recommended: Square or circular photo cutout of Chan Tse Hong smiling or making a funny face!</p>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-300 mb-1">Or Direct Face Image URL</label>
+                <input id="input-piggy-face-url" type="text" onchange="updatePiggyFaceUrl(this.value)" placeholder="https://example.com/chan-tse-hong.jpg" class="w-full text-xs px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white font-mono" />
+              </div>
+
+              <div class="pt-1 flex items-center gap-2">
+                <input id="checkbox-piggy-snout" type="checkbox" onchange="togglePiggySnoutSetting(this.checked)" class="rounded bg-slate-800 border-slate-700 text-pink-500 focus:ring-pink-500 w-4 h-4" checked />
+                <label for="checkbox-piggy-snout" class="text-xs text-slate-300 font-medium cursor-pointer select-none">
+                  Overlay cute 🐽 Pig Snout on boyfriend face
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Questions List -->
+        <div class="space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-2">
+              <i data-lucide="help-circle" class="w-4 h-4"></i>
+              <span>Bonus Couple Trivia Questions</span>
+            </h3>
+            <button onclick="addNewQuizQuestion()" class="px-3 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold flex items-center gap-1.5 shadow transition">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>Add Question</span>
+            </button>
+          </div>
+          <div id="quiz-editor-list" class="space-y-4">
+            <!-- Dynamic Quiz Questions injected by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 4: MUSEUM OF US (CHAPTER 3)                                       -->
+      <!-- ===================================================================== -->
+      <section id="pane-museum" class="admin-pane hidden space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-xl font-bold text-white font-serif-title">Chapter 3: Museum of Us Exhibits (Full CRUD)</h2>
+            <p class="text-xs text-slate-400">Add romantic photos, date memories, stories, or delete exhibits.</p>
+          </div>
+          <button onclick="addNewMuseumExhibit()" class="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold flex items-center gap-1.5 shadow transition">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Add New Exhibit</span>
+          </button>
+        </div>
+
+        <div id="museum-editor-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <!-- Dynamic Museum Exhibits injected by JS -->
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 5: LIFETIME BUCKET LIST & DREAM BOARD (CHAPTER 4)                 -->
+      <!-- ===================================================================== -->
+      <section id="pane-bucketlist" class="admin-pane hidden space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-xl font-bold text-white font-serif-title">Chapter 4: Lifetime Bucket List & Dream Board (Full CRUD)</h2>
+            <p class="text-xs text-slate-400">Add, edit, or check off future travel plans, cozy living dreams, food quests, and milestones with Michelle.</p>
+          </div>
+          <button onclick="addNewBucketItem()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white text-xs font-bold flex items-center gap-1.5 shadow transition">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Add New Dream</span>
+          </button>
+        </div>
+
+        <div id="bucketlist-editor-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <!-- Dynamic Bucket List items injected by JS -->
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 6: LETTER & VOUCHERS (CHAPTER 5)                                  -->
+      <!-- ===================================================================== -->
+      <section id="pane-letter" class="admin-pane hidden space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-xl font-bold text-white font-serif-title">Chapter 5: Mystery Envelope & Love Letter</h2>
+            <p class="text-xs text-slate-400">The heartfelt letter revealed upon breaking the wax seal, plus the 4 scratch coupons.</p>
+          </div>
+        </div>
+
+        <!-- Love Letter Editor -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-bold uppercase tracking-wider text-rose-400">Love Letter Body Text</label>
+            <span class="text-[11px] text-slate-500">Supports line breaks</span>
+          </div>
+          <textarea id="input-letter-body" rows="8" class="w-full text-xs sm:text-sm px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white font-serif focus:outline-none focus:ring-2 focus:ring-rose-500 leading-relaxed" placeholder="Write your heartfelt letter here..."></textarea>
+        </div>
+
+        
+        <!-- Hong's Voice Memo Studio for Vinyl Record Player -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-bold uppercase tracking-wider text-rose-400 flex items-center gap-2">
+              <i data-lucide="mic" class="w-4 h-4"></i>
+              <span>Hong's Secret Voice Memo (For Vinyl Record Player in Chapter 5)</span>
+            </label>
+            <span id="voice-memo-status-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400">
+              No Voice Memo Recorded
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">
+            Record a heartfelt audio message for Michelle or upload an audio file. Michelle will be able to listen to your real voice on the <strong>Vintage Vinyl Turntable</strong>! (Only you can record here; Michelle can only play it on the main page).
+          </p>
+
+          <div class="flex items-center gap-3 flex-wrap">
+            <button type="button" id="btn-start-record-voice" onclick="startVoiceRecording()" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-2 shadow transition cursor-pointer">
+              <span class="w-2.5 h-2.5 rounded-full bg-white animate-ping" id="rec-dot" style="display:none;"></span>
+              <span id="rec-btn-text">🎙️ Start Recording Voice</span>
+            </button>
+            <button type="button" id="btn-stop-record-voice" onclick="stopVoiceRecording()" class="px-4 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold hidden flex items-center gap-2 transition cursor-pointer">
+              <span>⏹️ Stop Recording</span>
+            </button>
+            <span id="voice-timer-display" class="font-mono text-xs font-bold text-rose-300 hidden">00:00</span>
+
+            <div class="h-6 w-px bg-slate-700 mx-1 hidden sm:block"></div>
+
+            <label class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-sm transition">
+              <span>📁 Upload Voice File (.mp3, .m4a, .wav)</span>
+              <input type="file" id="voice-file-input" accept="audio/*" class="hidden" onchange="handleVoiceFileUpload(event)">
+            </label>
+          </div>
+
+          <!-- Audio Preview Player -->
+          <div id="voice-preview-container" class="hidden pt-2 space-y-2">
+            <div class="text-[11px] text-slate-400 font-semibold">Preview Your Voice Recording:</div>
+            <audio id="voice-audio-preview" controls class="w-full h-10 rounded-lg bg-slate-800"></audio>
+            <div class="flex items-center justify-between text-xs pt-1">
+              <span class="text-emerald-400 font-medium text-[11px]">✓ Voice memo ready! Click "Save & Sync to Supabase" to publish to Michelle's site.</span>
+              <button type="button" onclick="deleteVoiceMemo()" class="text-rose-400 hover:text-rose-300 text-xs underline cursor-pointer">Delete / Re-record</button>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- 4 Scratch Vouchers Editor -->
+        <div class="space-y-4">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400">Birthday Scratch-Off Coupons</h3>
+          <div id="vouchers-editor-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Dynamic Vouchers injected by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 6: WISH WALL (CHAPTER 4)                                          -->
+      <!-- ===================================================================== -->
+      <section id="pane-notes" class="admin-pane hidden space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-xl font-bold text-white font-serif-title">Wish Wall & Sticky Notes (Full CRUD)</h2>
+            <p class="text-xs text-slate-400">Manage cute sticky notes and romantic reminders shown on the wall.</p>
+          </div>
+          <button onclick="addNewStickyNote()" class="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold flex items-center gap-1.5 shadow transition">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Add Sticky Note</span>
+          </button>
+        </div>
+
+        <div id="notes-editor-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Dynamic Sticky Notes injected by JS -->
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- TAB 7: SUPABASE & BACKUP SETTINGS                                     -->
+      <!-- ===================================================================== -->
+      <section id="pane-supabase" class="admin-pane hidden space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-xl font-bold text-white font-serif-title">Supabase Database & Cloud Connection</h2>
+            <p class="text-xs text-slate-400">Connect to your Supabase project so changes deploy automatically to Vercel!</p>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
+          <div class="flex items-center gap-3 pb-3 border-b border-slate-800">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold text-lg">
+              ⚡
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white">Supabase Project API Keys</h3>
+              <p class="text-xs text-slate-400">Found in your Supabase Dashboard &gt; Project Settings &gt; API</p>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">Project URL</label>
+              <input id="input-sb-url" type="text" placeholder="https://xyzcompany.supabase.co" class="w-full text-xs font-mono px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">Anon / Public API Key</label>
+              <input id="input-sb-key" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." class="w-full text-xs font-mono px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 pt-2">
+              <button onclick="saveSupabaseCredentials()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 shadow transition">
+                <i data-lucide="check" class="w-4 h-4"></i>
+                <span>Save Credentials</span>
+              </button>
+              <button onclick="testSupabaseConnection()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center gap-2 transition">
+                <i data-lucide="activity" class="w-4 h-4"></i>
+                <span>Test Connection</span>
+              </button>
+            </div>
+
+            <div id="sb-test-result" class="hidden p-3 rounded-xl text-xs font-medium"></div>
+          </div>
+        </div>
+
+        <!-- Admin PIN Customization -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i data-lucide="lock" class="w-4 h-4 text-rose-400"></i>
+            <span>Change Admin Passcode / PIN</span>
+          </h3>
+          <div class="flex items-center gap-3 max-w-sm">
+            <input id="input-new-pin" type="text" maxlength="8" placeholder="New PIN (e.g. 1019)" class="w-full text-xs font-mono px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white" />
+            <button onclick="updateAdminPin()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 whitespace-nowrap">
+              Update PIN
+            </button>
+          </div>
+        </div>
+
+        <!-- Export & Backup JSON -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i data-lucide="download" class="w-4 h-4 text-blue-400"></i>
+            <span>Backup & Restore (JSON)</span>
+          </h3>
+          <div class="flex flex-wrap items-center gap-3">
+            <button onclick="exportSiteJson()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center gap-2">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              <span>Download Backup JSON</span>
+            </button>
+            <label class="cursor-pointer px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center gap-2">
+              <i data-lucide="upload" class="w-4 h-4"></i>
+              <span>Import Backup JSON</span>
+              <input type="file" accept=".json" class="hidden" onchange="importSiteJson(event)" />
+            </label>
+            <button onclick="resetToDefaults()" class="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-semibold text-xs flex items-center gap-2 ml-auto">
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+              <span>Reset to Defaults</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Floating Toast Notification -->
+  <div id="admin-toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none px-4 py-3 rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl flex items-center gap-3 text-xs font-semibold text-white">
+    <div id="toast-icon-box" class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs">✓</div>
+    <span id="toast-message">Operation successful!</span>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT LOGIC FOR ADMIN DASHBOARD & CRUD                               -->
+  <!-- ========================================================================= -->
+  <script>
+    // State Holder
+    let currentData = null;
+    let toastTimeout = null;
+
+    // PIN Authentication
+    function getAdminPin() {
+      return localStorage.getItem(window.BirthdayDB.ADMIN_PIN_KEY) || window.BirthdayDB.DEFAULT_ADMIN_PIN;
+    }
+
+    function handleUnlockSubmit() {
+      const input = document.getElementById('admin-pin-input');
+      const errorMsg = document.getElementById('pin-error-msg');
+      const val = input.value.trim();
+
+      if (val === getAdminPin()) {
+        sessionStorage.setItem('admin_unlocked', 'true');
+        document.getElementById('lock-screen').classList.add('hidden');
+        document.getElementById('admin-app').classList.remove('hidden');
+        lucide.createIcons();
+        initAdminData();
+      } else {
+        errorMsg.classList.remove('hidden');
+        input.value = '';
+        input.focus();
+      }
+    }
+
+    document.getElementById('admin-pin-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleUnlockSubmit();
+    });
+
+    function lockAdmin() {
+      sessionStorage.removeItem('admin_unlocked');
+      location.reload();
+    }
+
+    function updateAdminPin() {
+      const newPin = document.getElementById('input-new-pin').value.trim();
+      if (!newPin || newPin.length < 3) {
+        showToast("PIN must be at least 3 characters", false);
+        return;
+      }
+      localStorage.setItem(window.BirthdayDB.ADMIN_PIN_KEY, newPin);
+      document.getElementById('input-new-pin').value = '';
+      showToast("Admin PIN updated successfully!", true);
+    }
+
+    // Tab Switching
+    function switchAdminTab(tabKey) {
+      document.querySelectorAll('.admin-pane').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+        btn.className = "admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 border border-transparent flex items-center gap-2 whitespace-nowrap transition";
+      });
+
+      const pane = document.getElementById(`pane-${tabKey}`);
+      const btn = document.getElementById(`tab-btn-${tabKey}`);
+      if (pane) pane.classList.remove('hidden');
+      if (btn) {
+        btn.className = "admin-tab-btn active px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30 flex items-center gap-2 whitespace-nowrap transition";
+      }
+      lucide.createIcons();
+    }
+
+    // Toast Notification
+    function showToast(message, isSuccess = true) {
+      const toast = document.getElementById('admin-toast');
+      const icon = document.getElementById('toast-icon-box');
+      const msg = document.getElementById('toast-message');
+
+      msg.textContent = message;
+      if (isSuccess) {
+        icon.className = "w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs";
+        icon.textContent = "✓";
+      } else {
+        icon.className = "w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-xs";
+        icon.textContent = "✕";
+      }
+
+      toast.classList.remove('translate-y-24', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-24', 'opacity-0');
+      }, 3500);
+    }
+
+    // =========================================================================
+    // INITIALIZATION & DATA HYDRATION
+    // =========================================================================
+    async function initAdminData() {
+      // 1. Populate Supabase config inputs
+      const { url, anonKey } = window.BirthdayDB.getSupabaseConfig();
+      if (document.getElementById('input-sb-url')) document.getElementById('input-sb-url').value = url || '';
+      if (document.getElementById('input-sb-key')) document.getElementById('input-sb-key').value = anonKey || '';
+
+      // 2. Fetch latest data
+      currentData = await window.BirthdayDB.loadSiteConfig();
+      renderAllPanes();
+
+      // 3. Update sync badge
+      const client = window.BirthdayDB.initSupabaseClient();
+      const badge = document.getElementById('sync-status-badge');
+      if (client) {
+        badge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1";
+        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span><span>Supabase Connected</span>`;
+      } else {
+        badge.className = "text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-1";
+        badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span><span>Local Mode (Connect Supabase)</span>`;
+      }
+    }
+
+    function renderAllPanes() {
+      if (!currentData) return;
+
+      // Check Voice Memo
+      const existingVoice = currentData.voiceMemo || localStorage.getItem('bday_voice_memo');
+      if (existingVoice && typeof renderSavedVoiceMemo === 'function') {
+        renderSavedVoiceMemo(existingVoice);
+      }
+
+      // 1. General Pane
+      document.getElementById('input-gf-name').value = currentData.general?.gfName || '';
+      document.getElementById('input-author-name').value = currentData.general?.authorName || '';
+      document.getElementById('input-bday-date').value = currentData.general?.birthdayDate || '2026-10-19';
+      document.getElementById('input-bday-display').value = currentData.general?.birthdayDisplay || 'October 19';
+      document.getElementById('input-header-badge').value = currentData.general?.headerBadge || 'Oct 19 Edition';
+      document.getElementById('input-status-badge').value = currentData.general?.specialStatusBadge || '✨ Special Day';
+      document.getElementById('input-music-url').value = currentData.general?.musicUrl || '';
+
+      // 2. Scroll Scene Captions
+      document.getElementById('input-phase1-badge').value = currentData.scrollScene?.phase1Badge || '';
+      document.getElementById('input-phase1-sub').value = currentData.scrollScene?.phase1Sub || '';
+      document.getElementById('input-phase1-main').value = currentData.scrollScene?.phase1Main || '';
+
+      document.getElementById('input-phase2-badge').value = currentData.scrollScene?.phase2Badge || '';
+      document.getElementById('input-phase2-sub').value = currentData.scrollScene?.phase2Sub || '';
+      document.getElementById('input-phase2-main').value = currentData.scrollScene?.phase2Main || '';
+
+      document.getElementById('input-phase3-badge').value = currentData.scrollScene?.phase3Badge || '';
+      document.getElementById('input-phase3-sub').value = currentData.scrollScene?.phase3Sub || '';
+      document.getElementById('input-phase3-main').value = currentData.scrollScene?.phase3Main || '';
+
+      document.getElementById('input-phase4-badge').value = currentData.scrollScene?.phase4Badge || '';
+      document.getElementById('input-phase4-sub').value = currentData.scrollScene?.phase4Sub || '';
+      document.getElementById('input-phase4-main').value = currentData.scrollScene?.phase4Main || '';
+
+      // 3. Milestones List
+      renderMilestonesList();
+
+      // 4. Quiz & Piggy Game Pane
+      renderPiggyAdminPane();
+      renderQuizList();
+
+      // 5. Museum Grid
+      renderMuseumGrid();
+
+      // 6. Chapter 4 Bucket List Grid
+      renderBucketListGrid();
+
+      // 7. Letter & Vouchers
+      document.getElementById('input-letter-body').value = currentData.letter?.body || '';
+      renderVouchersGrid();
+
+      // 8. Wish Wall Notes
+      renderNotesGrid();
+
+      lucide.createIcons();
+    }
+
+    // =========================================================================
+    // MILESTONES CRUD
+    // =========================================================================
+    function renderMilestonesList() {
+      const container = document.getElementById('milestones-editor-list');
+      container.innerHTML = '';
+
+      (currentData.milestones || []).forEach((m, idx) => {
+        const card = document.createElement('div');
+        card.className = "bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 hover:border-slate-700 transition";
+        card.innerHTML = `
+          <!-- Card Header -->
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-xs font-bold">${idx + 1}</span>
+              <span class="text-sm font-bold text-white">Milestone #${idx + 1}: ${escapeHtml(m.title || 'Untitled')}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] text-slate-400 font-medium">Badge:</span>
+              <input type="text" value="${escapeHtml(m.tag || '')}" onchange="updateMilestoneField(${idx}, 'tag', this.value)" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-rose-300 font-mono" placeholder="Tag / Badge" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <!-- Left Column: Story Details (7 cols) -->
+            <div class="lg:col-span-7 space-y-3">
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-300 mb-1">Milestone Title</label>
+                <input type="text" value="${escapeHtml(m.title || '')}" onchange="updateMilestoneField(${idx}, 'title', this.value)" class="w-full text-xs px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:border-rose-500 focus:outline-none" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-300 mb-1">Story Paragraph</label>
+                <textarea rows="3" onchange="updateMilestoneField(${idx}, 'description', this.value)" class="w-full text-xs px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:border-rose-500 focus:outline-none">${escapeHtml(m.description || '')}</textarea>
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-300 mb-1">Subtext / Location / Date Tag</label>
+                <input type="text" value="${escapeHtml(m.subtext || '')}" onchange="updateMilestoneField(${idx}, 'subtext', this.value)" class="w-full text-xs px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:border-rose-500 focus:outline-none" />
+              </div>
+
+              <div class="pt-2 border-t border-slate-800/80 space-y-2">
+                <span class="text-[11px] font-bold text-amber-400 uppercase tracking-wider block">Polaroid Flip Texts</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[10px] text-slate-400 mb-1">Front Subtitle Quote</label>
+                    <input type="text" value="${escapeHtml(m.frontQuote || '')}" onchange="updateMilestoneField(${idx}, 'frontQuote', this.value)" class="w-full text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white" />
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-slate-400 mb-1">Front Handwriting Quote</label>
+                    <input type="text" value="${escapeHtml(m.frontHandwriting || '')}" onchange="updateMilestoneField(${idx}, 'frontHandwriting', this.value)" class="w-full text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-[10px] text-slate-400 mb-1">Back Memory Log Note</label>
+                  <textarea rows="2" onchange="updateMilestoneField(${idx}, 'backNote', this.value)" class="w-full text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white">${escapeHtml(m.backNote || '')}</textarea>
+                </div>
+                <div>
+                  <label class="block text-[10px] text-slate-400 mb-1">Back Footer Note</label>
+                  <input type="text" value="${escapeHtml(m.backFooter || '')}" onchange="updateMilestoneField(${idx}, 'backFooter', this.value)" class="w-full text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Card Photo Upload & Preview (5 cols) -->
+            <div class="lg:col-span-5 bg-slate-800/50 p-4 rounded-xl border border-slate-700/60 space-y-3 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-bold text-rose-400 flex items-center gap-1.5">
+                    <i data-lucide="image" class="w-3.5 h-3.5"></i>
+                    <span>Card Photo (Front Side)</span>
+                  </span>
+                  ${m.imageUrl ? '<span class="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1">✓ Photo Active</span>' : '<span class="text-[10px] text-amber-400 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">Default Icon</span>'}
+                </div>
+
+                <!-- Photo Preview / Placeholder Box -->
+                <div class="w-full h-44 rounded-xl overflow-hidden border border-slate-700 bg-slate-900/80 relative flex items-center justify-center group">
+                  ${m.imageUrl ? `
+                    <img src="${escapeHtml(m.imageUrl)}" alt="Milestone #${idx + 1}" class="w-full h-full object-cover" />
+                    <div class="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                      <label class="cursor-pointer px-3 py-1.5 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold flex items-center gap-1 shadow">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Change
+                        <input type="file" accept="image/*" class="hidden" onchange="handleMilestonePhotoUpload(event, ${idx})" />
+                      </label>
+                      <button onclick="removeMilestonePhoto(${idx})" class="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center gap-1 shadow">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Remove
+                      </button>
+                    </div>
+                  ` : `
+                    <div class="text-center p-4">
+                      <div class="w-12 h-12 mx-auto rounded-full bg-slate-800 text-rose-400 flex items-center justify-center mb-2">
+                        <i data-lucide="camera" class="w-6 h-6"></i>
+                      </div>
+                      <p class="text-xs text-slate-300 font-medium mb-1">No custom photo yet</p>
+                      <p class="text-[10px] text-slate-500">Currently displays default animated icon</p>
+                    </div>
+                  `}
+                </div>
+              </div>
+
+              <!-- Upload Button & URL field -->
+              <div class="space-y-2 pt-2">
+                <label class="cursor-pointer w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20 transition">
+                  <i data-lucide="upload" class="w-4 h-4"></i>
+                  <span>${m.imageUrl ? 'Change Photo (Upload file)' : 'Upload Milestone Photo'}</span>
+                  <input type="file" accept="image/*" class="hidden" onchange="handleMilestonePhotoUpload(event, ${idx})" />
+                </label>
+
+                <div>
+                  <label class="block text-[10px] text-slate-400 mb-1">Or paste image URL:</label>
+                  <div class="flex items-center gap-1.5">
+                    <input type="text" value="${escapeHtml(m.imageUrl || '')}" onchange="updateMilestoneField(${idx}, 'imageUrl', this.value); renderMilestonesList();" placeholder="https://example.com/photo.jpg" class="w-full text-[11px] px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-mono" />
+                    ${m.imageUrl ? `
+                      <button onclick="removeMilestonePhoto(${idx})" title="Remove photo" class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                      </button>
+                    ` : ''}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    function updateMilestoneField(index, field, value) {
+      if (currentData.milestones && currentData.milestones[index]) {
+        currentData.milestones[index][field] = value;
+      }
+    }
+
+    function removeMilestonePhoto(index) {
+      if (currentData.milestones && currentData.milestones[index]) {
+        currentData.milestones[index].imageUrl = '';
+        renderMilestonesList();
+        showToast(`Removed photo from Milestone #${index + 1}`, true);
+      }
+    }
+
+    async function handleMilestonePhotoUpload(event, index) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      showToast("Uploading milestone photo...", true);
+      const res = await window.BirthdayDB.uploadMediaFile(file);
+      if (res.success && res.url) {
+        updateMilestoneField(index, 'imageUrl', res.url);
+        renderMilestonesList();
+        showToast("Photo uploaded successfully! Remember to click 'Save & Sync'.", true);
+      } else {
+        showToast("Upload failed: " + (res.error || 'Unknown error'), false);
+      }
+    }
+
+    // =========================================================================
+    // PIGGY MAIN GAME ADMIN
+    // =========================================================================
+    function renderPiggyAdminPane() {
+      if (!currentData) return;
+      if (!currentData.piggyGame) currentData.piggyGame = {};
+
+      const faceUrl = currentData.piggyGame.faceUrl || '';
+      const showSnout = currentData.piggyGame.showSnout !== false;
+
+      const imgEl = document.getElementById('admin-piggy-face-img');
+      const placeholder = document.getElementById('admin-piggy-face-placeholder');
+      const snoutEl = document.getElementById('admin-piggy-snout-overlay');
+      const urlInput = document.getElementById('input-piggy-face-url');
+      const snoutCheck = document.getElementById('checkbox-piggy-snout');
+      const removeBtn = document.getElementById('admin-remove-face-btn');
+
+      if (urlInput) urlInput.value = faceUrl;
+      if (snoutCheck) snoutCheck.checked = showSnout;
+      if (snoutEl) snoutEl.style.display = showSnout ? 'flex' : 'none';
+
+      if (faceUrl) {
+        if (imgEl) {
+          imgEl.src = faceUrl;
+          imgEl.classList.remove('hidden');
+        }
+        if (placeholder) placeholder.classList.add('hidden');
+        if (removeBtn) removeBtn.classList.remove('hidden');
+      } else {
+        if (imgEl) imgEl.classList.add('hidden');
+        if (placeholder) placeholder.classList.remove('hidden');
+        if (removeBtn) removeBtn.classList.add('hidden');
+      }
+      lucide.createIcons();
+    }
+
+    async function handlePiggyFaceUpload(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      showToast("Uploading piggy face cutout...", true);
+      const res = await window.BirthdayDB.uploadMediaFile(file);
+      if (res.success && res.url) {
+        if (!currentData.piggyGame) currentData.piggyGame = {};
+        currentData.piggyGame.faceUrl = res.url;
+        renderPiggyAdminPane();
+        showToast("Piggy face uploaded! Click 'Save & Sync' to persist to cloud.", true);
+      } else {
+        showToast("Upload failed: " + (res.error || 'Unknown error'), false);
+      }
+    }
+
+    function removePiggyFace() {
+      if (!currentData.piggyGame) currentData.piggyGame = {};
+      currentData.piggyGame.faceUrl = '';
+      renderPiggyAdminPane();
+      showToast("Face removed. Default avatar restored.", true);
+    }
+
+    function updatePiggyFaceUrl(val) {
+      if (!currentData.piggyGame) currentData.piggyGame = {};
+      currentData.piggyGame.faceUrl = val.trim();
+      renderPiggyAdminPane();
+    }
+
+    function togglePiggySnoutSetting(val) {
+      if (!currentData.piggyGame) currentData.piggyGame = {};
+      currentData.piggyGame.showSnout = val;
+      renderPiggyAdminPane();
+    }
+
+    async function resetAdminPiggyGame() {
+      if (!confirm("Are you sure you want to reset Michelle's Piggy Game progress back to Day 1 (15kg)?")) return;
+      showToast("Resetting piggy game progress...", true);
+      const res = await window.BirthdayDB.resetPiggyGame();
+      if (res.success) {
+        showToast("Piggy Game progress reset back to Day 1 (15kg)!", true);
+      } else {
+        showToast("Reset failed: " + (res.error || 'Unknown error'), false);
+      }
+    }
+
+    // =========================================================================
+    // QUIZ CRUD
+    // =========================================================================
+    function renderQuizList() {
+      const container = document.getElementById('quiz-editor-list');
+      container.innerHTML = '';
+
+      (currentData.quiz || []).forEach((q, idx) => {
+        const item = document.createElement('div');
+        item.className = "bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3";
+        item.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-rose-400">Question ${idx + 1}</span>
+            <button onclick="deleteQuizQuestion(${idx})" class="text-xs text-slate-500 hover:text-rose-400 flex items-center gap-1">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Delete
+            </button>
+          </div>
+
+          <div>
+            <label class="block text-[10px] text-slate-400 mb-1">Question Text</label>
+            <input type="text" value="${escapeHtml(q.question || '')}" onchange="updateQuizField(${idx}, 'question', this.value)" class="w-full text-xs px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white" />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+            ${(q.options || []).map((opt, oIdx) => `
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-400 w-4">${oIdx + 1}.</span>
+                <input type="text" value="${escapeHtml(opt)}" onchange="updateQuizOption(${idx}, ${oIdx}, this.value)" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white" />
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1">Correct Answer Index</label>
+              <select onchange="updateQuizField(${idx}, 'correctIndex', parseInt(this.value))" class="w-full text-xs px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white">
+                <option value="0" ${q.correctIndex === 0 ? 'selected' : ''}>Option 1 is correct</option>
+                <option value="1" ${q.correctIndex === 1 ? 'selected' : ''}>Option 2 is correct</option>
+                <option value="2" ${q.correctIndex === 2 ? 'selected' : ''}>Option 3 is correct</option>
+                <option value="3" ${q.correctIndex === 3 ? 'selected' : ''}>Option 4 is correct</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-3 pt-4">
+              <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                <input type="checkbox" ${q.allCorrect ? 'checked' : ''} onchange="updateQuizField(${idx}, 'allCorrect', this.checked)" class="rounded text-rose-500" />
+                <span>All Options Correct (Joke/Trick)</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[10px] text-slate-400 mb-1">Explanation / Romantic Feedback</label>
+            <input type="text" value="${escapeHtml(q.feedback || '')}" onchange="updateQuizField(${idx}, 'feedback', this.value)" class="w-full text-xs px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white" />
+          </div>
+        `;
+        container.appendChild(item);
+      });
+      lucide.createIcons();
+    }
+
+    function addNewQuizQuestion() {
+      if (!currentData.quiz) currentData.quiz = [];
+      currentData.quiz.push({
+        id: "q_" + Date.now(),
+        question: "New romantic question for Michelle?",
+        options: ["Option A", "Option B", "Option C", "Option D"],
+        correctIndex: 0,
+        allCorrect: false,
+        feedback: "Correct! You know our story so well! 💖",
+        wrongFeedback: "Almost! Try again! 🥰"
+      });
+      renderQuizList();
+      showToast("New question added!", true);
+    }
+
+    function deleteQuizQuestion(idx) {
+      if (confirm("Delete this trivia question?")) {
+        currentData.quiz.splice(idx, 1);
+        renderQuizList();
+        showToast("Question deleted", true);
+      }
+    }
+
+    function updateQuizField(idx, field, value) {
+      if (currentData.quiz && currentData.quiz[idx]) {
+        currentData.quiz[idx][field] = value;
+      }
+    }
+
+    function updateQuizOption(qIdx, optIdx, value) {
+      if (currentData.quiz && currentData.quiz[qIdx] && currentData.quiz[qIdx].options) {
+        currentData.quiz[qIdx].options[optIdx] = value;
+      }
+    }
+
+    // =========================================================================
+    // MUSEUM CRUD
+    // =========================================================================
+    function renderMuseumGrid() {
+      const container = document.getElementById('museum-editor-grid');
+      container.innerHTML = '';
+
+      (currentData.museum || []).forEach((e, idx) => {
+        const card = document.createElement('div');
+        card.className = "bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 flex flex-col justify-between";
+        card.innerHTML = `
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-2xl">${escapeHtml(e.icon || '🖼️')}</span>
+              <button onclick="deleteMuseumExhibit(${idx})" class="text-slate-500 hover:text-rose-400 p-1">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1">Exhibit Title</label>
+              <input type="text" value="${escapeHtml(e.title || '')}" onchange="updateMuseumField(${idx}, 'title', this.value)" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-bold" />
+            </div>
+
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1">Wing / Category</label>
+              <input type="text" value="${escapeHtml(e.wing || '')}" onchange="updateMuseumField(${idx}, 'wing', this.value)" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white" placeholder="e.g. 🍜 Culinary Archive" />
+            </div>
+
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1">Memory Description</label>
+              <textarea rows="3" onchange="updateMuseumField(${idx}, 'desc', this.value)" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white">${escapeHtml(e.desc || '')}</textarea>
+            </div>
+
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1">Emoji Icon & Photo</label>
+              <div class="flex items-center gap-2">
+                <input type="text" value="${escapeHtml(e.icon || '💖')}" onchange="updateMuseumField(${idx}, 'icon', this.value)" class="w-12 text-center text-sm py-1 rounded-lg bg-slate-800 border border-slate-700 text-white" title="Emoji Icon" />
+                <input type="text" value="${escapeHtml(e.imageUrl || '')}" onchange="updateMuseumField(${idx}, 'imageUrl', this.value)" placeholder="Photo URL" class="w-full text-xs px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-white" />
+              </div>
+            </div>
+
+            <div>
+              <label class="cursor-pointer w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700 flex items-center justify-center gap-1.5 transition">
+                <i data-lucide="upload" class="w-3 h-3 text-rose-400"></i>
+                <span>Upload Exhibit Photo</span>
+                <input type="file" accept="image/*" class="hidden" onchange="handleMuseumPhotoUpload(event, ${idx})" />
+              </label>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    function addNewMuseumExhibit() {
+      if (!currentData.museum) currentData.museum = [];
+      currentData.museum.push({
+        id: "e_" + Date.now(),
+        wing: "✨ Special Memory",
+        category: "adventures",
+        title: "A New Sweet Memory",
+        desc: "Description of another wonderful moment together with Michelle...",
+        badge: "Special Memory",
+        icon: "💖",
+        imageUrl: ""
+      });
+      renderMuseumGrid();
+      showToast("New exhibit added to Museum of Us!", true);
+    }
+
+    function deleteMuseumExhibit(idx) {
+      if (confirm("Delete this exhibit from Museum of Us?")) {
+        currentData.museum.splice(idx, 1);
+        renderMuseumGrid();
+        showToast("Exhibit deleted", true);
+      }
+    }
+
+    function updateMuseumField(idx, field, value) {
+      if (currentData.museum && currentData.museum[idx]) {
+        currentData.museum[idx][field] = value;
+      }
+    }
+
+    async function handleMuseumPhotoUpload(event, index) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      showToast("Uploading exhibit photo...", true);
+      const res = await window.BirthdayDB.uploadMediaFile(file);
+      if (res.success && res.url) {
+        updateMuseumField(index, 'imageUrl', res.url);
+        renderMuseumGrid();
+        showToast("Photo uploaded successfully!", true);
+      } else {
+        showToast("Upload failed: " + (res.error || 'Unknown error'), false);
+      }
+    }
+
+    // =========================================================================
+    // CHAPTER 4: BUCKET LIST CRUD
+    // =========================================================================
+    function renderBucketListGrid() {
+      const container = document.getElementById('bucketlist-editor-grid');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (!currentData.bucketList) {
+        currentData.bucketList = window.BirthdayDB?.DEFAULT_SITE_DATA?.bucketList || [];
+      }
+
+      currentData.bucketList.forEach((b, idx) => {
+        const card = document.createElement('div');
+        card.className = "bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 flex flex-col justify-between";
+        card.innerHTML = `
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-rose-400">Dream #${idx + 1}</span>
+              <button onclick="deleteBucketItem(${idx})" class="text-slate-500 hover:text-rose-400 p-1" title="Delete dream">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+
+            <!-- Title & Emoji -->
+            <div class="grid grid-cols-4 gap-2">
+              <div class="col-span-1">
+                <label class="block text-[10px] text-slate-400 mb-1">Emoji</label>
+                <input type="text" value="${escapeHtml(b.emoji || '✨')}" onchange="updateBucketField(${idx}, 'emoji', this.value)" class="w-full text-center text-sm py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white" />
+              </div>
+              <div class="col-span-3">
+                <label class="block text-[10px] text-slate-400 mb-1">Dream Title</label>
+                <input type="text" value="${escapeHtml(b.title || '')}" onchange="updateBucketField(${idx}, 'title', this.value)" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-bold" placeholder="e.g. Chase Northern Lights" />
+              </div>
+            </div>
+
+            <!-- Category & Status -->
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-1">Category</label>
+                <select onchange="updateBucketField(${idx}, 'category', this.value)" class="w-full text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white">
+                  <option value="travel" ${b.category === 'travel' ? 'selected' : ''}>✈️ Epic Travels</option>
+                  <option value="cozy" ${b.category === 'cozy' ? 'selected' : ''}>🏡 Cozy Living</option>
+                  <option value="foodie" ${b.category === 'foodie' ? 'selected' : ''}>🍜 Food Quests</option>
+                  <option value="milestones" ${b.category === 'milestones' ? 'selected' : ''}>💍 Big Milestones</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-1">Status</label>
+                <select onchange="updateBucketStatus(${idx}, this.value)" class="w-full text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white">
+                  <option value="wish" ${b.status === 'wish' ? 'selected' : ''}>💭 Dreaming</option>
+                  <option value="in-progress" ${b.status === 'in-progress' ? 'selected' : ''}>🎯 Planning</option>
+                  <option value="achieved" ${b.status === 'achieved' ? 'selected' : ''}>🎉 Achieved!</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Target Timeline -->
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1">Target Timeline / Year</label>
+              <input type="text" value="${escapeHtml(b.targetYear || '')}" onchange="updateBucketField(${idx}, 'targetYear', this.value)" placeholder="e.g. Next Winter, Soon, Forever" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white" />
+            </div>
+
+            <!-- Description -->
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1">Description / Romantic Plan</label>
+              <textarea rows="3" onchange="updateBucketField(${idx}, 'description', this.value)" class="w-full text-xs px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white">${escapeHtml(b.description || '')}</textarea>
+            </div>
+
+            <!-- Photo Upload -->
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-1">Photo Preview / Inspiration URL</label>
+              <input type="text" value="${escapeHtml(b.imageUrl || '')}" onchange="updateBucketField(${idx}, 'imageUrl', this.value)" placeholder="Image URL (optional)" class="w-full text-xs px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 text-white mb-2" />
+              <label class="cursor-pointer w-full py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700 flex items-center justify-center gap-1.5 transition">
+                <i data-lucide="upload" class="w-3 h-3 text-rose-400"></i>
+                <span>Upload Inspiration Photo</span>
+                <input type="file" accept="image/*" class="hidden" onchange="handleBucketPhotoUpload(event, ${idx})" />
+              </label>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    function addNewBucketItem() {
+      if (!currentData.bucketList) currentData.bucketList = [];
+      currentData.bucketList.push({
+        id: "b_" + Date.now(),
+        title: "A New Adventure With You",
+        category: "travel",
+        categoryLabel: "✈️ Epic Travels",
+        emoji: "✨",
+        description: "Something exciting, cozy, or crazy I want to experience with you...",
+        status: "wish",
+        statusText: "Dreaming 💭",
+        targetYear: "Next Year",
+        imageUrl: ""
+      });
+      renderBucketListGrid();
+      showToast("New dream added to Lifetime Bucket List!", true);
+    }
+
+    function deleteBucketItem(idx) {
+      if (confirm("Delete this dream from your Bucket List?")) {
+        currentData.bucketList.splice(idx, 1);
+        renderBucketListGrid();
+        showToast("Dream deleted", true);
+      }
+    }
+
+    function updateBucketField(idx, field, value) {
+      if (currentData.bucketList && currentData.bucketList[idx]) {
+        currentData.bucketList[idx][field] = value;
+      }
+    }
+
+    function updateBucketStatus(idx, status) {
+      if (currentData.bucketList && currentData.bucketList[idx]) {
+        currentData.bucketList[idx].status = status;
+        if (status === 'achieved') currentData.bucketList[idx].statusText = 'Achieved! 🎉';
+        else if (status === 'in-progress') currentData.bucketList[idx].statusText = 'Planning 🎯';
+        else currentData.bucketList[idx].statusText = 'Dreaming 💭';
+      }
+    }
+
+    async function handleBucketPhotoUpload(event, index) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      showToast("Uploading dream photo...", true);
+      const res = await window.BirthdayDB.uploadMediaFile(file);
+      if (res.success && res.url) {
+        updateBucketField(index, 'imageUrl', res.url);
+        renderBucketListGrid();
+        showToast("Dream photo uploaded successfully!", true);
+      } else {
+        showToast("Upload failed: " + (res.error || 'Unknown error'), false);
+      }
+    }
+
+    // =========================================================================
+    // VOUCHERS CRUD
+    // =========================================================================
+    function renderVouchersGrid() {
+      const container = document.getElementById('vouchers-editor-grid');
+      container.innerHTML = '';
+
+      (currentData.vouchers || []).forEach((v, idx) => {
+        const card = document.createElement('div');
+        card.className = "bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3 flex flex-col justify-between";
+        card.innerHTML = `
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <input type="text" value="${escapeHtml(v.couponNo || '')}" onchange="updateVoucherField(${idx}, 'couponNo', this.value)" class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-rose-400" />
+              <input type="text" value="${escapeHtml(v.icon || '🎟️')}" onchange="updateVoucherField(${idx}, 'icon', this.value)" class="w-8 text-center text-lg bg-transparent" />
+            </div>
+
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Coupon Title</label>
+              <input type="text" value="${escapeHtml(v.title || '')}" onchange="updateVoucherField(${idx}, 'title', this.value)" class="w-full text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white font-bold" />
+            </div>
+
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">Perk Description</label>
+              <textarea rows="3" onchange="updateVoucherField(${idx}, 'desc', this.value)" class="w-full text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white">${escapeHtml(v.desc || '')}</textarea>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    function updateVoucherField(idx, field, value) {
+      if (currentData.vouchers && currentData.vouchers[idx]) {
+        currentData.vouchers[idx][field] = value;
+      }
+    }
+
+    // =========================================================================
+    // WISH WALL STICKY NOTES CRUD
+    // =========================================================================
+    function renderNotesGrid() {
+      const container = document.getElementById('notes-editor-grid');
+      container.innerHTML = '';
+
+      (currentData.notes || []).forEach((n, idx) => {
+        const card = document.createElement('div');
+        const colorClasses = {
+          rose: 'border-rose-500/30 bg-rose-500/5',
+          amber: 'border-amber-500/30 bg-amber-500/5',
+          purple: 'border-purple-500/30 bg-purple-500/5'
+        };
+
+        card.className = `border rounded-2xl p-4 space-y-3 ${colorClasses[n.color] || colorClasses.rose}`;
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <input type="text" value="${escapeHtml(n.tag || '')}" onchange="updateNoteField(${idx}, 'tag', this.value)" class="text-xs px-2.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-white font-bold" placeholder="Tag" />
+            <button onclick="deleteStickyNote(${idx})" class="text-slate-500 hover:text-rose-400 p-1">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+
+          <div>
+            <textarea rows="3" onchange="updateNoteField(${idx}, 'text', this.value)" class="w-full text-xs px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white font-handwriting text-lg leading-snug">${escapeHtml(n.text || '')}</textarea>
+          </div>
+
+          <div class="flex items-center justify-between pt-1">
+            <select onchange="updateNoteField(${idx}, 'color', this.value)" class="text-[11px] px-2 py-1 rounded bg-slate-800 border border-slate-700 text-white">
+              <option value="rose" ${n.color === 'rose' ? 'selected' : ''}>Rose</option>
+              <option value="amber" ${n.color === 'amber' ? 'selected' : ''}>Amber / Honey</option>
+              <option value="purple" ${n.color === 'purple' ? 'selected' : ''}>Purple / Lilac</option>
+            </select>
+            <input type="text" value="${escapeHtml(n.timeText || 'Always')}" onchange="updateNoteField(${idx}, 'timeText', this.value)" class="text-[10px] w-20 text-center py-1 rounded bg-slate-800 border border-slate-700 text-slate-400" placeholder="Timestamp" />
+          </div>
+        `;
+        container.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    function addNewStickyNote() {
+      if (!currentData.notes) currentData.notes = [];
+      currentData.notes.unshift({
+        id: "n_" + Date.now(),
+        tag: "Sweet Note",
+        timeText: "Just now",
+        text: "You make every day brighter just by being yourself.",
+        color: "rose"
+      });
+      renderNotesGrid();
+      showToast("New sticky note added!", true);
+    }
+
+    function deleteStickyNote(idx) {
+      if (confirm("Delete this sticky note?")) {
+        currentData.notes.splice(idx, 1);
+        renderNotesGrid();
+        showToast("Note deleted", true);
+      }
+    }
+
+    function updateNoteField(idx, field, value) {
+      if (currentData.notes && currentData.notes[idx]) {
+        currentData.notes[idx][field] = value;
+      }
+    }
+
+    // =========================================================================
+    // GLOBAL SAVE & SYNC TO SUPABASE
+    // =========================================================================
+    async function saveAllChangesToCloud() {
+      if (!currentData) return;
+
+      const saveBtn = document.getElementById('global-save-btn');
+      const saveText = document.getElementById('global-save-text');
+      saveBtn.disabled = true;
+      saveText.textContent = "Syncing...";
+
+      // Collect General fields
+      if (!currentData.general) currentData.general = {};
+      currentData.general.gfName = document.getElementById('input-gf-name').value.trim() || 'Michelle';
+      currentData.general.authorName = document.getElementById('input-author-name').value.trim() || 'Your Love ❤️';
+      currentData.general.birthdayDate = document.getElementById('input-bday-date').value || '2026-10-19';
+      currentData.general.birthdayDisplay = document.getElementById('input-bday-display').value.trim() || 'October 19';
+      currentData.general.headerBadge = document.getElementById('input-header-badge').value.trim() || 'Oct 19 Edition';
+      currentData.general.specialStatusBadge = document.getElementById('input-status-badge').value.trim() || '✨ Special Day';
+      currentData.general.musicUrl = document.getElementById('input-music-url').value.trim() || '';
+
+      // Collect Scroll Scene fields
+      if (!currentData.scrollScene) currentData.scrollScene = {};
+      currentData.scrollScene.phase1Badge = document.getElementById('input-phase1-badge').value;
+      currentData.scrollScene.phase1Sub = document.getElementById('input-phase1-sub').value;
+      currentData.scrollScene.phase1Main = document.getElementById('input-phase1-main').value;
+
+      currentData.scrollScene.phase2Badge = document.getElementById('input-phase2-badge').value;
+      currentData.scrollScene.phase2Sub = document.getElementById('input-phase2-sub').value;
+      currentData.scrollScene.phase2Main = document.getElementById('input-phase2-main').value;
+
+      currentData.scrollScene.phase3Badge = document.getElementById('input-phase3-badge').value;
+      currentData.scrollScene.phase3Sub = document.getElementById('input-phase3-sub').value;
+      currentData.scrollScene.phase3Main = document.getElementById('input-phase3-main').value;
+
+      currentData.scrollScene.phase4Badge = document.getElementById('input-phase4-badge').value;
+      currentData.scrollScene.phase4Sub = document.getElementById('input-phase4-sub').value;
+      currentData.scrollScene.phase4Main = document.getElementById('input-phase4-main').value;
+
+      // Collect Piggy Game fields
+      if (!currentData.piggyGame) currentData.piggyGame = {};
+      const faceUrlInput = document.getElementById('input-piggy-face-url');
+      if (faceUrlInput) currentData.piggyGame.faceUrl = faceUrlInput.value.trim();
+      const snoutCheckbox = document.getElementById('checkbox-piggy-snout');
+      if (snoutCheckbox) currentData.piggyGame.showSnout = snoutCheckbox.checked;
+
+      // Collect Letter body
+      if (!currentData.letter) currentData.letter = {};
+      currentData.letter.body = document.getElementById('input-letter-body').value;
+      currentData.letter.recipient = currentData.general.gfName;
+      currentData.letter.author = currentData.general.authorName;
+
+      // Also mirror to legacy localStorage keys for backward compatibility
+      localStorage.setItem('bday_gf_name', currentData.general.gfName);
+      localStorage.setItem('bday_author_name', currentData.general.authorName);
+      localStorage.setItem('bday_letter_body', currentData.letter.body);
+
+      const savedVoiceLocal = localStorage.getItem('bday_voice_memo');
+      if (savedVoiceLocal) {
+        currentData.voiceMemo = savedVoiceLocal;
+      }
+
+      // Save to Supabase Cloud & Local Cache
+      const res = await window.BirthdayDB.saveSiteConfig(currentData);
+
+      saveBtn.disabled = false;
+      saveText.textContent = "Save & Sync to Supabase";
+
+      if (res.success) {
+        showToast(res.message || "Saved successfully!", true);
+      } else {
+        showToast("Error saving: " + (res.error || 'Unknown error'), false);
+      }
+    }
+
+    // =========================================================================
+    // SUPABASE CREDENTIALS & CONNECTION TEST
+    // =========================================================================
+    function saveSupabaseCredentials() {
+      const url = document.getElementById('input-sb-url').value.trim();
+      const key = document.getElementById('input-sb-key').value.trim();
+
+      window.BirthdayDB.setSupabaseConfig(url, key);
+      showToast("Supabase credentials saved locally!", true);
+      initAdminData();
+    }
+
+    async function testSupabaseConnection() {
+      const resultDiv = document.getElementById('sb-test-result');
+      resultDiv.className = "p-3 rounded-xl text-xs font-medium bg-slate-800 text-slate-300 block";
+      resultDiv.textContent = "Connecting to Supabase...";
+
+      const urlInput = document.getElementById('input-sb-url').value.trim();
+      const keyInput = document.getElementById('input-sb-key').value.trim();
+
+      if (!urlInput || !keyInput) {
+        resultDiv.className = "p-3 rounded-xl text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20 block";
+        resultDiv.textContent = "Please enter both Project URL and Anon API Key first.";
+        return;
+      }
+
+      // Auto-save entered credentials
+      window.BirthdayDB.setSupabaseConfig(urlInput, keyInput);
+      const client = window.BirthdayDB.initSupabaseClient();
+      if (!client) {
+        resultDiv.className = "p-3 rounded-xl text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20 block";
+        resultDiv.textContent = "Could not initialize Supabase client. Please check URL and Key format.";
+        return;
+      }
+
+      try {
+        const { data, error } = await client.from('birthday_site_data').select('id').limit(1);
+        if (error) {
+          resultDiv.className = "p-3 rounded-xl text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20 block";
+          resultDiv.innerHTML = `Connected to API, but table query returned error: <b>${escapeHtml(error.message)}</b>.<br>Did you run the <code class="bg-black/30 px-1 py-0.5 rounded">supabase_schema.sql</code> script in your Supabase SQL editor?`;
+        } else {
+          resultDiv.className = "p-3 rounded-xl text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 block";
+          resultDiv.innerHTML = `✓ Connection Successful! Supabase table <code class="bg-black/30 px-1 py-0.5 rounded">birthday_site_data</code> is accessible and ready!`;
+        }
+      } catch (e) {
+        resultDiv.className = "p-3 rounded-xl text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20 block";
+        resultDiv.textContent = "Network error: " + e.message;
+      }
+    }
+
+    // =========================================================================
+    // EXPORT & IMPORT JSON
+    // =========================================================================
+    function exportSiteJson() {
+      if (!currentData) return;
+      const jsonStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentData, null, 2));
+      const a = document.createElement('a');
+      a.setAttribute("href", jsonStr);
+      a.setAttribute("download", `michelle_birthday_backup_${new Date().toISOString().slice(0, 10)}.json`);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      showToast("Backup JSON downloaded!", true);
+    }
+
+    function importSiteJson(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          currentData = parsed;
+          renderAllPanes();
+          showToast("Data imported successfully! Click 'Save & Sync' to push to cloud.", true);
+        } catch (err) {
+          showToast("Invalid JSON file", false);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetToDefaults() {
+      if (confirm("Reset all settings to original defaults? (Any custom changes will be overwritten)")) {
+        currentData = JSON.parse(JSON.stringify(window.BirthdayDB.DEFAULT_SITE_DATA));
+        renderAllPanes();
+        showToast("Reset to defaults. Remember to click 'Save & Sync'.", true);
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Auto-login if previously unlocked in this browser session
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      if (sessionStorage.getItem('admin_unlocked') === 'true') {
+        document.getElementById('lock-screen').classList.add('hidden');
+        document.getElementById('admin-app').classList.remove('hidden');
+        initAdminData();
+      }
+    });
+  </script>
+</body>
+</html>
