@@ -330,6 +330,7 @@
     body {
       overflow-x: clip;
       max-width: 100vw;
+      position: relative;
     }
 
     /* Full-Screen Scroll-Driven Birthday Candle Scene Styles (Edge-to-Edge Desktop / Cinema Viewport iPhone) */
@@ -345,7 +346,14 @@
 
     @media (max-width: 767px) {
       .scroll-scene-wrapper {
+        width: 100%;
+        max-width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+        left: 0;
+        right: 0;
         height: 750vh;
+        overflow-x: hidden;
       }
     }
 
@@ -387,10 +395,16 @@
       .scene-bottom-captions {
         position: absolute;
         bottom: 0;
-        inset-x: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
         padding-top: 7rem;
-        padding-bottom: 2rem;
+        padding-bottom: 2.5rem;
         background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 65%, transparent 100%);
+        z-index: 30;
       }
     }
 
@@ -442,8 +456,13 @@
       .scene-bottom-captions {
         position: relative;
         inset: auto;
-        padding: 0.5rem 1rem 0.25rem;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0.5rem 1rem max(0.85rem, env(safe-area-inset-bottom, 0.85rem));
         background: transparent;
+        z-index: 30;
       }
 
       header {
@@ -924,15 +943,15 @@
   <canvas id="cursor-fx-canvas"></canvas>
 
   <header
-    class="sticky top-0 z-40 px-3 sm:px-4 py-2 sm:py-3 bg-white/75 backdrop-blur-md border-b border-rose-100/80 transition-all duration-300">
-    <div class="max-w-6xl mx-auto flex items-center justify-between gap-2">
+    class="sticky top-0 z-40 px-2.5 sm:px-4 py-2 sm:py-3 bg-white/80 backdrop-blur-md border-b border-rose-100/80 transition-all duration-300">
+    <div class="max-w-6xl mx-auto flex items-center justify-between gap-1.5 sm:gap-2 flex-nowrap w-full overflow-hidden">
       <!-- Title & Lover's Name -->
-      <div class="flex items-center gap-2 sm:gap-3 min-w-0">
-        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 shadow-inner shrink-0">
-          <i data-lucide="sparkles" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+      <div class="flex items-center gap-1.5 sm:gap-3 min-w-0 flex-1 overflow-hidden">
+        <div class="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 shadow-inner shrink-0">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 sm:w-5 sm:h-5"></i>
         </div>
-        <div class="min-w-0">
-          <div class="flex items-center gap-1.5 sm:gap-2">
+        <div class="min-w-0 flex-1 overflow-hidden">
+          <div class="hidden sm:flex items-center gap-1.5 sm:gap-2">
             <span
               class="text-[10px] sm:text-xs uppercase font-bold tracking-wider text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200/60 shrink-0">Oct
               19 Edition</span>
@@ -941,26 +960,26 @@
               Special Day</span>
           </div>
           <h1
-            class="text-xs sm:text-lg font-bold font-serif-title tracking-tight text-slate-900 truncate">
+            class="text-xs sm:text-base md:text-lg font-bold font-serif-title tracking-tight text-slate-900 truncate">
             Happy Birthday, <span id="girlfriend-display-name" class="text-rose-600 font-bold">Michelle</span>! 🎂
           </h1>
         </div>
       </div>
 
       <!-- Quick Action Controls -->
-      <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
+      <div class="flex items-center gap-1 sm:gap-2 shrink-0">
         <!-- Main Game Quick Access Button -->
         <button onclick="openMainGameModal()" id="header-main-game-btn"
-          class="glass-pill px-2.5 sm:px-3 py-1.5 rounded-full flex items-center gap-1 sm:gap-1.5 text-xs font-bold text-amber-900 bg-gradient-to-r from-amber-100 via-pink-100 to-rose-100 hover:from-amber-200 hover:to-rose-200 transition border border-amber-300 shadow-sm cursor-pointer shrink-0"
+          class="glass-pill px-2 sm:px-3 py-1.5 rounded-full flex items-center gap-1 sm:gap-1.5 text-xs font-bold text-amber-900 bg-gradient-to-r from-amber-100 via-pink-100 to-rose-100 hover:from-amber-200 hover:to-rose-200 transition border border-amber-300 shadow-sm cursor-pointer shrink-0"
           title="Play Train Your Piggy Boyfriend!">
-          <span class="text-sm animate-pulse">🐷</span>
+          <span class="text-xs sm:text-sm">🐷</span>
           <span class="hidden sm:inline">Main Game</span>
-          <span class="sm:hidden">Game</span>
+          <span class="sm:hidden text-[11px]">Game</span>
         </button>
 
         <!-- Audio Synthesizer Controller -->
         <button id="music-toggle-btn"
-          class="glass-pill px-2.5 sm:px-3 py-1.5 rounded-full flex items-center gap-1 sm:gap-2 text-xs font-medium text-rose-700 hover:bg-rose-50 transition border border-rose-200 shrink-0"
+          class="glass-pill px-2 sm:px-3 py-1.5 rounded-full flex items-center gap-1 sm:gap-2 text-xs font-medium text-rose-700 hover:bg-rose-50 transition border border-rose-200 shrink-0"
           title="Toggle Romantic Melody">
           <i data-lucide="music" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500"></i>
           <span id="music-status-text" class="hidden sm:inline">Play Melody</span>
@@ -969,10 +988,10 @@
 
         <!-- Birthday Mode Forcer Toggle -->
         <button id="toggle-bday-mode-btn"
-          class="text-xs bg-rose-500 hover:bg-rose-600 text-white font-semibold px-2.5 sm:px-3 py-1.5 rounded-full shadow-sm hover:shadow transition flex items-center gap-1.5 shrink-0">
+          class="text-xs bg-rose-500 hover:bg-rose-600 text-white font-semibold px-2 sm:px-3 py-1.5 rounded-full shadow-sm hover:shadow transition flex items-center gap-1 shrink-0">
           <i data-lucide="cake" class="w-3.5 h-3.5"></i>
           <span class="hidden md:inline">Celebrate Now</span>
-          <span class="md:hidden">Party</span>
+          <span class="md:hidden text-[11px]">Party</span>
         </button>
       </div>
     </div>
@@ -1347,8 +1366,8 @@
           </div>
 
           <!-- Bottom Floating Cinematic Captions -->
-          <div class="scene-bottom-captions z-30 px-4 pb-3 text-white text-center pointer-events-none w-full max-w-2xl mx-auto">
-            <div class="space-y-1.5 pointer-events-auto">
+          <div class="scene-bottom-captions z-30 pointer-events-none w-full">
+            <div class="w-full max-w-4xl mx-auto px-4 sm:px-8 text-center space-y-1.5 pointer-events-auto">
               <span id="scene-sub-caption"
                 class="text-[10px] sm:text-xs uppercase tracking-widest text-rose-300 font-bold block drop-shadow">
                 Childhood Birthday Magic • October 19
@@ -2707,7 +2726,7 @@
         </div>
 
         <!-- The Luxury Physical Boarding Pass Visual Component -->
-        <div class="relative overflow-x-auto py-2">
+        <div class="relative w-full max-w-full overflow-x-auto py-2">
           <div id="boarding-pass-ticket" class="min-w-[680px] max-w-3xl mx-auto rounded-3xl bg-gradient-to-r from-slate-900 via-rose-950 to-indigo-950 text-white shadow-2xl border-2 border-amber-300/40 relative flex select-none overflow-hidden">
             
             <!-- Golden Top Foil Accent Strip -->
@@ -5343,10 +5362,36 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
         }
 
         const boxRect = timelineBox.getBoundingClientRect();
+        const firstCard = storyCards[0];
+        const lastCard = storyCards[storyCards.length - 1];
 
-        // Viewport focus anchor centered around 50% screen height
-        const currentMid = (windowHeight * 0.5) - boxRect.top;
-        let progress = (currentMid - trackTop) / trackHeight;
+        // Viewport focus anchor centered around 60% screen height (comfortable reading level)
+        const focalY = windowHeight * 0.60;
+        let progress = 0;
+
+        if (firstCard && lastCard) {
+          const firstRect = firstCard.getBoundingClientRect();
+          const lastRect = lastCard.getBoundingClientRect();
+          const firstMid = firstRect.top + firstRect.height / 2;
+          const lastMid = lastRect.top + lastRect.height / 2;
+          const trackDist = lastMid - firstMid;
+
+          if (trackDist > 0) {
+            progress = (focalY - firstMid) / trackDist;
+          }
+        } else {
+          const currentMid = focalY - boxRect.top;
+          progress = (currentMid - trackTop) / trackHeight;
+        }
+
+        // Check if user has scrolled near the bottom of the page or the roadmap section
+        const isNearBottom = (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 70) ||
+                             (boxRect.bottom <= windowHeight + 60);
+
+        if (isNearBottom) {
+          progress = 1.0;
+        }
+
         progress = Math.max(0, Math.min(1, progress));
 
         // Heart center is 24px below container top (container is 48px high)
