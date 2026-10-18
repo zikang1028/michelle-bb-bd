@@ -334,6 +334,7 @@
     }
 
     /* Full-Screen Scroll-Driven Birthday Candle Scene Styles (Edge-to-Edge Desktop / Cinema Viewport iPhone) */
+    /* Tighten container heights to remove empty dead-space */
     .scroll-scene-wrapper {
       position: relative;
       width: 100vw;
@@ -341,19 +342,18 @@
       right: 50%;
       margin-left: -50vw;
       margin-right: -50vw;
-      height: 900vh;
+      height: 400vh; /* Reduced from 900vh for smooth desktop scrubbing */
     }
 
     @media (max-width: 767px) {
       .scroll-scene-wrapper {
-        width: 100%;
-        max-width: 100%;
-        margin-left: 0;
-        margin-right: 0;
+        width: calc(100% + 2rem);
+        max-width: calc(100% + 2rem);
+        margin-left: -1rem;
+        margin-right: -1rem;
         left: 0;
         right: 0;
-        height: 750vh;
-        overflow-x: hidden;
+        height: 260vh; /* REDUCE from 750vh to 260vh to completely eliminate the giant blank gap */
       }
     }
 
@@ -412,17 +412,15 @@
     @media (max-width: 767px) {
       .scroll-scene-sticky {
         position: sticky;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        height: 100dvh;
+        top: 48px; /* Offset to clear the sticky navigation header */
+        height: calc(100svh - 48px);
+        height: calc(100dvh - 48px);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
         background: radial-gradient(circle at 50% 45%, #181224 0%, #090c16 75%, #05060c 100%);
-        padding-top: max(0.65rem, env(safe-area-inset-top, 0.65rem));
-        padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
+        padding-top: 0.5rem;
+        padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem));
         box-sizing: border-box;
         overflow: hidden;
         contain: paint layout;
@@ -435,7 +433,7 @@
       .scene-top-controls {
         position: relative;
         width: 100%;
-        padding-top: max(3.5rem, calc(env(safe-area-inset-top, 0px) + 3.2rem));
+        padding-top: 0.5rem;
         z-index: 35;
       }
 
@@ -5352,6 +5350,18 @@ Happy October 19th, Michelle! Today is entirely all about celebrating you. ✨`,
 
       calibrateTrackMetrics();
       window.addEventListener('resize', calibrateTrackMetrics);
+      window.addEventListener('load', calibrateTrackMetrics);
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => calibrateTrackMetrics());
+      }
+      if (window.ResizeObserver && timelineBox) {
+        try {
+          const ro = new ResizeObserver(() => calibrateTrackMetrics());
+          ro.observe(timelineBox);
+        } catch (e) {}
+      }
+      setTimeout(calibrateTrackMetrics, 200);
+      setTimeout(calibrateTrackMetrics, 750);
 
       function updateScrollTimeline() {
         const windowHeight = window.innerHeight;
