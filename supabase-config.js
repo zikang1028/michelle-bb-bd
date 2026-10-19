@@ -439,7 +439,11 @@ async function loadSiteConfig() {
 
     if (data && data.data) {
       const merged = deepMerge(DEFAULT_SITE_DATA, data.data);
-      localStorage.setItem(SB_CACHE_KEY, JSON.stringify(merged));
+      try {
+        localStorage.setItem(SB_CACHE_KEY, JSON.stringify(merged));
+      } catch (e) {
+        console.warn('[Supabase] Local cache quota exceeded, keeping in memory:', e);
+      }
       return merged;
     }
   } catch (err) {

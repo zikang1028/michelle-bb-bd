@@ -3145,7 +3145,7 @@
             </div>
 
             <!-- Hidden Audio Element for Pre-recorded Voice from Admin -->
-            <audio id="turntable-voice-audio" class="hidden" onended="onVinylTrackEnded()"></audio>
+            <audio id="turntable-voice-audio" class="hidden" preload="auto" playsinline webkit-playsinline onended="onVinylTrackEnded()"></audio>
 
           </div>
 
@@ -4069,6 +4069,7 @@
     const STATE = {
       gfName: localStorage.getItem('bday_gf_name') || 'Michelle',
       authorName: localStorage.getItem('bday_author_name') || 'Forever Yours, Chan Tse Hong (Lengzai糠) ❤️',
+      voiceMemo: localStorage.getItem('bday_voice_memo') || null,
       letterText: localStorage.getItem('bday_letter_body') ||
         `Happy Birthday, my dearest Michelle! 🌸
 
@@ -8034,6 +8035,11 @@ function gameLoop(currentTime) {
     ];
 
     function selectVinylTrack(trackIdx) {
+      if (currentVinylTrack === trackIdx && isVinylPlaying) {
+        stopVinylPlayback();
+        return;
+      }
+
       if (isVinylPlaying) {
         stopVinylPlayback();
       }
@@ -8051,6 +8057,8 @@ function gameLoop(currentTime) {
           btn.classList.remove('ring-2', 'ring-amber-400', 'font-bold');
         }
       });
+
+      startVinylPlayback();
     }
 
     function toggleVinylPlay() {
@@ -8062,6 +8070,11 @@ function gameLoop(currentTime) {
     }
 
     function startVinylPlayback() {
+      // Pause header background music if playing to avoid overlapping audios
+      if (typeof isMusicPlaying !== 'undefined' && isMusicPlaying && typeof toggleMusic === 'function') {
+        toggleMusic();
+      }
+
       isVinylPlaying = true;
 
       // Move tone-arm onto record
@@ -8082,24 +8095,62 @@ function gameLoop(currentTime) {
       if (btnText) btnText.textContent = "⏸ Pause Turntable";
 
       const statusText = document.getElementById('turntable-status-text');
-      if (statusText) statusText.textContent = "Now Playing 🎵";
-
       const track = VINYL_TRACKS[currentVinylTrack];
+
+      // Stop any melodic synthesizer timer if switching from synth to voice
+      if (vinylSynthTimer) {
+        clearInterval(vinylSynthTimer);
+        vinylSynthTimer = null;
+      }
 
       // Track 4: Hong's Pre-recorded Voice Memo
       if (track.type === 'voice') {
-        let voiceUrl = null;
-        if (typeof currentData !== 'undefined' && currentData.voiceMemo) {
-          voiceUrl = currentData.voiceMemo;
-        } else {
-          voiceUrl = localStorage.getItem('bday_voice_memo');
+        let voiceUrl = STATE.voiceMemo || (typeof currentData !== 'undefined' && currentData?.voiceMemo) || localStorage.getItem('bday_voice_memo');
+        const audioEl = document.getElementById('turntable-voice-audio');
+
+        if (!voiceUrl && window.BirthdayDB) {
+          if (statusText) statusText.textContent = "Loading voice memo... 🎙️";
+          window.BirthdayDB.loadSiteConfig().then(cfg => {
+            if (cfg && cfg.voiceMemo) {
+              STATE.voiceMemo = cfg.voiceMemo;
+              window.currentData = cfg;
+              if (audioEl) {
+                audioEl.src = cfg.voiceMemo;
+                audioEl.load();
+              }
+              if (isVinylPlaying && currentVinylTrack === 3) {
+                startVinylPlayback();
+              }
+            } else {
+              playSynthesizedMelody([523.25, 659.25, 783.99, 1046.50]);
+              if (statusText) statusText.textContent = "Hong's Special Serenade 💕";
+            }
+          });
+          return;
         }
 
-        const audioEl = document.getElementById('turntable-voice-audio');
         if (voiceUrl && audioEl) {
-          audioEl.src = voiceUrl;
+          if (!audioEl.src || audioEl.src !== voiceUrl) {
+            audioEl.src = voiceUrl;
+            audioEl.load();
+          }
+          if (statusText) statusText.textContent = "Playing Voice Memo 🎙️";
+
+          audioEl.ontimeupdate = () => {
+            if (isVinylPlaying && currentVinylTrack === 3 && audioEl.duration) {
+              const curM = Math.floor(audioEl.currentTime / 60);
+              const curS = String(Math.floor(audioEl.currentTime % 60)).padStart(2, '0');
+              const durM = Math.floor(audioEl.duration / 60);
+              const durS = String(Math.floor(audioEl.duration % 60)).padStart(2, '0');
+              if (statusText) {
+                statusText.textContent = `Voice Memo (${curM}:${curS} / ${durM}:${durS}) 🎙️`;
+              }
+            }
+          };
+
           audioEl.play().catch(e => {
             console.warn("Audio play prevented:", e);
+            if (statusText) statusText.textContent = "Tap again to play audio 🎵";
             playSynthesizedMelody([523.25, 659.25, 783.99, 1046.50]);
           });
         } else {
@@ -8109,6 +8160,9 @@ function gameLoop(currentTime) {
         }
       } else {
         // Melodic tracks
+        const audioEl = document.getElementById('turntable-voice-audio');
+        if (audioEl) audioEl.pause();
+        if (statusText) statusText.textContent = "Now Playing 🎵";
         playSynthesizedMelody(track.melody);
       }
     }
@@ -9834,6 +9888,33 @@ function gameLoop(currentTime) {
         hydrateVouchers(cfg.vouchers);
       }
 
+      // 9. Chapter 5: Hong's Secret Voice Memo
+      window.currentData = cfg;
+      if (cfg.voiceMemo) {
+        STATE.voiceMemo = cfg.voiceMemo;
+        try {
+          localStorage.setItem('bday_voice_memo', cfg.voiceMemo);
+        } catch (e) {
+          console.warn("[VoiceMemo] Local storage quota reached, keeping audio in memory.");
+        }
+
+        const audioEl = document.getElementById('turntable-voice-audio');
+        if (audioEl) {
+          audioEl.src = cfg.voiceMemo;
+          audioEl.load();
+        }
+
+        // Update Track 4 button badge to confirm audio is ready
+        const track4Btn = document.querySelector('button[data-track="3"]');
+        if (track4Btn) {
+          const badge = track4Btn.querySelector('span:last-child');
+          if (badge) {
+            badge.textContent = "✓ READY TO PLAY";
+            badge.className = "text-[10px] px-2 py-0.5 rounded-full bg-emerald-500 text-white font-bold animate-pulse";
+          }
+        }
+      }
+
       lucide.createIcons();
     }
 
@@ -9980,6 +10061,13 @@ function gameLoop(currentTime) {
 
       // 1. Instant local render (guarantees fast first-paint)
       applyStateToUI();
+      if (STATE.voiceMemo) {
+        const audioEl = document.getElementById('turntable-voice-audio');
+        if (audioEl) {
+          audioEl.src = STATE.voiceMemo;
+          audioEl.load();
+        }
+      }
       initAmbientParticles();
       initCandleScrollAnimation();
       initScrollHeartStory();
